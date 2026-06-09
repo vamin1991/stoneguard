@@ -24,11 +24,12 @@
     const STONE_TYPES = ["All Types", "Calcium Oxalate", "Uric Acid", "Struvite", "Cystine"];
 
     const SYSTEM_PROMPT = `You are StoneGuard, an expert nutritional analyzer for kidney stone patients. Analyze the food or ingredients provided and return ONLY valid JSON with no markdown, no backticks, no extra text. Use exactly this structure:
-{"productName":"string","overallScore":75,"scoreLabel":"Good","summary":"2-3 sentence plain language summary.","stoneTypeRisks":{"calciumOxalate":{"risk":"Low","reason":"reason"},"uricAcid":{"risk":"Low","reason":"reason"},"struvite":{"risk":"Low","reason":"reason"},"cystine":{"risk":"Low","reason":"reason"}},"ingredients":[{"name":"name","oxalateLevel":"Low","concern":"reason","flag":"good"}],"recommendations":["rec1","rec2","rec3"],"safeAlternatives":["alt1","alt2"]}
+{"productName":"string","overallScore":75,"scoreLabel":"Good","summary":"2-3 sentence plain language summary.","stoneTypeRisks":{"calciumOxalate":{"risk":"Low","reason":"reason"},"uricAcid":{"risk":"Low","reason":"reason"},"struvite":{"risk":"Low","reason":"reason"},"cystine":{"risk":"Low","reason":"reason"}},"ingredients":[{"name":"name","oxalateLevel":"Low","concern":"reason","flag":"good"}],"recommendations":[{"text":"recommendation text","product":"Actual Brand Product Name","store":"Whole Foods / Target","amazonUrl":"https://www.amazon.com/s?k=product+name"}],"safeAlternatives":[{"name":"Actual Brand Product Name","reason":"why it is safer","store":"Whole Foods / Target","amazonUrl":"https://www.amazon.com/s?k=product+name"}]}
 scoreLabel must be one of: Excellent, Good, Moderate, Poor, Very Poor
 risk must be one of: Low, Medium, High
 oxalateLevel must be one of: None, Low, Medium, High, Very High
 flag must be one of: good, caution, warning, neutral
+For recommendations and safeAlternatives, always suggest REAL specific branded products available in the US (e.g. "Chanca Piedra by Stone Breaker", "LMNT Electrolyte Drink Mix", "Fairlife Core Power Protein Shake", "Harmless Harvest Coconut Water"). Include where to buy (Whole Foods, Target, Amazon, Walmart) and a real Amazon search URL for the product.
 Return ONLY the JSON object, absolutely nothing else.`;
 
     async function callClaude(messages) {
@@ -258,22 +259,48 @@ Return ONLY the JSON object, absolutely nothing else.`;
                 </div>
 
                 <div style={{ background:"rgba(56,189,248,0.04)", border:"1px solid rgba(56,189,248,0.12)", borderRadius:16, padding:16, marginBottom:14 }}>
-                  <h3 style={{ margin:"0 0 12px", fontSize:11, fontWeight:700, color:"#38bdf8", letterSpacing:2, textTransform:"uppercase" }}>Recommendations</h3>
+                  <h3 style={{ margin:"0 0 14px", fontSize:11, fontWeight:700, color:"#38bdf8", letterSpacing:2, textTransform:"uppercase" }}>Recommendations</h3>
                   {(result.recommendations||[]).map((r,i) => (
-                    <div key={i} style={{ display:"flex", gap:8, marginBottom:8 }}>
-                      <span style={{ color:"#38bdf8", flexShrink:0 }}>→</span>
-                      <p style={{ margin:0, fontSize:13, color:"rgba(255,255,255,0.6)", lineHeight:1.5 }}>{r}</p>
+                    <div key={i} style={{ marginBottom:14, padding:12, borderRadius:12, background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)" }}>
+                      <div style={{ display:"flex", gap:8, marginBottom:8 }}>
+                        <span style={{ color:"#38bdf8", flexShrink:0 }}>→</span>
+                        <p style={{ margin:0, fontSize:13, color:"rgba(255,255,255,0.7)", lineHeight:1.5 }}>{typeof r === "string" ? r : r.text}</p>
+                      </div>
+                      {r.product && (
+                        <div style={{ marginLeft:20 }}>
+                          <p style={{ margin:"0 0 4px", fontSize:12, fontWeight:700, color:"#f1f5f9" }}>🛒 {r.product}</p>
+                          {r.store && <p style={{ margin:"0 0 6px", fontSize:11, color:"rgba(255,255,255,0.4)" }}>📍 {r.store}</p>}
+                          {r.amazonUrl && (
+                            <a href={r.amazonUrl} target="_blank" rel="noopener noreferrer"
+                              style={{ display:"inline-block", padding:"5px 12px", borderRadius:8, background:"rgba(255,153,0,0.15)", border:"1px solid rgba(255,153,0,0.3)", color:"#ff9900", fontSize:11, fontWeight:700, textDecoration:"none" }}>
+                              View on Amazon →
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
 
                 {(result.safeAlternatives||[]).length > 0 && (
                   <div style={{ background:"rgba(74,222,128,0.04)", border:"1px solid rgba(74,222,128,0.12)", borderRadius:16, padding:16, marginBottom:14 }}>
-                    <h3 style={{ margin:"0 0 12px", fontSize:11, fontWeight:700, color:"#4ade80", letterSpacing:2, textTransform:"uppercase" }}>Safer Alternatives</h3>
+                    <h3 style={{ margin:"0 0 14px", fontSize:11, fontWeight:700, color:"#4ade80", letterSpacing:2, textTransform:"uppercase" }}>Safer Alternatives</h3>
                     {result.safeAlternatives.map((a,i) => (
-                      <div key={i} style={{ display:"flex", gap:8, marginBottom:6 }}>
-                        <span style={{ color:"#4ade80", flexShrink:0 }}>✓</span>
-                        <p style={{ margin:0, fontSize:13, color:"rgba(255,255,255,0.6)" }}>{a}</p>
+                      <div key={i} style={{ marginBottom:14, padding:12, borderRadius:12, background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)" }}>
+                        <div style={{ display:"flex", gap:8, marginBottom:6 }}>
+                          <span style={{ color:"#4ade80", flexShrink:0 }}>✓</span>
+                          <p style={{ margin:0, fontSize:13, fontWeight:700, color:"#f1f5f9" }}>{typeof a === "string" ? a : a.name}</p>
+                        </div>
+                        {a.reason && <p style={{ margin:"0 0 6px 20px", fontSize:12, color:"rgba(255,255,255,0.5)", lineHeight:1.5 }}>{a.reason}</p>}
+                        {a.store && <p style={{ margin:"0 0 6px 20px", fontSize:11, color:"rgba(255,255,255,0.4)" }}>📍 {a.store}</p>}
+                        {a.amazonUrl && (
+                          <div style={{ marginLeft:20 }}>
+                            <a href={a.amazonUrl} target="_blank" rel="noopener noreferrer"
+                              style={{ display:"inline-block", padding:"5px 12px", borderRadius:8, background:"rgba(255,153,0,0.15)", border:"1px solid rgba(255,153,0,0.3)", color:"#ff9900", fontSize:11, fontWeight:700, textDecoration:"none" }}>
+                              View on Amazon →
+                            </a>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
