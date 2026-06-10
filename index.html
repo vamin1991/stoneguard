@@ -25,11 +25,15 @@
     const { useState, useRef } = React;
 
     const SYSTEM_PROMPT = `You are StoneIQ, a nutritional analyzer for kidney stone patients. Return ONLY valid JSON, no markdown, no backticks, no extra text. Keep ALL text fields SHORT — max 1 sentence, under 12 words. Use this exact structure:
-{"productName":"string","overallScore":75,"scoreLabel":"Good","summary":"One short sentence, max 12 words.","stoneTypeRisks":{"calciumOxalate":{"risk":"Low","reason":"Max 8 words."},"uricAcid":{"risk":"Low","reason":"Max 8 words."},"struvite":{"risk":"Low","reason":"Max 8 words."},"cystine":{"risk":"Low","reason":"Max 8 words."}},"negatives":[{"name":"Ingredient","detail":"Max 8 words why bad.","oxalateLevel":"High","amount":""}],"positives":[{"name":"Ingredient","detail":"Max 8 words why good."}],"recommendations":[{"text":"Max 8 words.","product":"Real Brand Name","store":"Whole Foods / Target","amazonUrl":"https://www.amazon.com/s?k=product+name","imageUrl":"https://images-na.ssl-images-amazon.com/images/I/example.jpg"}],"safeAlternatives":[{"name":"Real Brand Name","reason":"Max 8 words why safer.","store":"Whole Foods / Target","amazonUrl":"https://www.amazon.com/s?k=product+name","imageUrl":"https://images-na.ssl-images-amazon.com/images/I/example.jpg"}]}
+{"productName":"string","overallScore":75,"scoreLabel":"Good","summary":"One short sentence, max 12 words.","stoneTypeRisks":{"calciumOxalate":{"risk":"Low","reason":"Max 8 words."},"uricAcid":{"risk":"Low","reason":"Max 8 words."},"struvite":{"risk":"Low","reason":"Max 8 words."},"cystine":{"risk":"Low","reason":"Max 8 words."}},"negatives":[{"name":"Ingredient","detail":"Max 8 words why bad.","oxalateLevel":"High","amount":""}],"positives":[{"name":"Ingredient","detail":"Max 8 words why good."}],"recommendations":[{"text":"Max 8 words why helpful for kidney stones.","product":"Real Brand Name","store":"Whole Foods / Target","amazonUrl":"https://www.amazon.com/s?k=product+name","imageUrl":"https://images-na.ssl-images-amazon.com/images/I/example.jpg"}],"safeAlternatives":[{"name":"Real Brand Name","reason":"Max 8 words why this is a safer swap.","store":"Whole Foods / Target","amazonUrl":"https://www.amazon.com/s?k=product+name","imageUrl":"https://images-na.ssl-images-amazon.com/images/I/example.jpg"}]}
 scoreLabel: Excellent, Good, Moderate, Poor, or Very Poor
 risk: Low, Medium, or High
 oxalateLevel: None, Low, Medium, High, or Very High
-Suggest REAL US branded products for recommendations and safeAlternatives. For imageUrl, provide a real Amazon product image URL for the product.
+
+CRITICAL RULES:
+- "safeAlternatives" must ONLY contain DIRECT SWAPS for the EXACT product scanned. If user scanned Chobani yogurt, suggest other yogurt brands lower in oxalate (e.g. Siggi's Plain Yogurt, Stonyfield Organic). NEVER suggest unrelated products here.
+- "recommendations" must ONLY contain kidney-stone-friendly products to ADD to daily routine (e.g. Chanca Piedra supplement, lemon juice, magnesium citrate). NOT swaps for the scanned product.
+- Both sections: suggest REAL US branded products only. Include store and Amazon URL.
 Return ONLY the JSON object, nothing else.`;
 
     async function callClaude(messages) {
@@ -199,11 +203,11 @@ Return ONLY the JSON object, nothing else.`;
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                 {result && <button onClick={reset} style={{ fontSize:13, color:'rgba(255,255,255,0.8)', background:'rgba(255,255,255,0.15)', border:'none', cursor:'pointer', fontWeight:600, padding:'6px 14px', borderRadius:20 }}>← Back</button>}
                 <button onClick={() => setTab('profile')} style={{ width:34, height:34, borderRadius:'50%', background:'#fff', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="12" cy="8" r="4" fill="#4f46e5"/>
-    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round"/>
-  </svg>
-</button>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="8" r="4" fill="#4f46e5"/>
+                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
@@ -402,7 +406,10 @@ Return ONLY the JSON object, nothing else.`;
 
                 {(result.recommendations||[]).length > 0 && (
                   <div style={{ marginBottom:10 }}>
-                    <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', marginBottom:10, paddingLeft:2 }}>Recommendations</p>
+                    <div style={{ marginBottom:10, paddingLeft:2 }}>
+                      <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', marginBottom:2 }}>Add to Your Routine</p>
+                      <p style={{ fontSize:11, color:'#888' }}>Kidney-stone-friendly products to add daily</p>
+                    </div>
                     <div style={{ display:'flex', gap:12, overflowX:'auto', paddingBottom:8, scrollSnapType:'x mandatory' }}>
                       {result.recommendations.map((r,i) => (
                         <div key={i} style={{ minWidth:'calc(100vw - 48px)', maxWidth:'calc(100vw - 48px)', background:'#4f46e5', borderRadius:14, overflow:'hidden', flexShrink:0, scrollSnapAlign:'start' }}>
@@ -434,7 +441,10 @@ Return ONLY the JSON object, nothing else.`;
 
                 {(result.safeAlternatives||[]).length > 0 && (
                   <div style={{ marginBottom:10 }}>
-                    <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', marginBottom:10, paddingLeft:2 }}>Safer Alternatives</p>
+                    <div style={{ marginBottom:10, paddingLeft:2 }}>
+                      <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', marginBottom:2 }}>Safer Swaps</p>
+                      <p style={{ fontSize:11, color:'#888' }}>Direct replacements for this product</p>
+                    </div>
                     <div style={{ display:'flex', gap:12, overflowX:'auto', paddingBottom:8, scrollSnapType:'x mandatory' }}>
                       {result.safeAlternatives.map((a,i) => (
                         <div key={i} style={{ minWidth:'calc(100vw - 48px)', maxWidth:'calc(100vw - 48px)', background:'#fff', borderRadius:14, overflow:'hidden', border:'0.5px solid #e0e7ff', flexShrink:0, scrollSnapAlign:'start' }}>
