@@ -38,12 +38,25 @@ Return ONLY the JSON object, nothing else.`
 
     const DB_URL = '/stoneiq-database.json';
     let _db = null;
+    let _index = {};      // exact key → product
+    let _wordIndex = {};  // word → [products]
 
     async function loadDB() {
       if (_db) return _db;
       try {
         const res = await fetch(DB_URL);
         _db = await res.json();
+        // Build indexes for instant lookup
+        _db.forEach(p => {
+          if (!p.search_key) return;
+          // Exact index
+          _index[p.search_key] = p;
+          // Word index
+          p.search_key.split(' ').filter(w => w.length > 2).forEach(word => {
+            if (!_wordIndex[word]) _wordIndex[word] = [];
+            _wordIndex[word].push(p);
+          });
+        });
       } catch(e) {
         _db = [];
       }
@@ -51,35 +64,30 @@ Return ONLY the JSON object, nothing else.`
     }
 
     function searchDB(query) {
-      if (!_db || !query) return null;
+      if (!_db?.length || !query) return null;
       const q = query.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
       const words = q.split(' ').filter(w => w.length > 2);
 
-      // Exact match first
-      let match = _db.find(p => p.search_key === q);
-      if (match) return match;
+      // 1. Exact index hit — O(1) instant
+      if (_index[q]) return _index[q];
 
-      // Starts with query
-      match = _db.find(p => p.search_key.startsWith(q));
-      if (match) return match;
+      // 2. Starts-with match
+      const keys = Object.keys(_index);
+      let match = keys.find(k => k.startsWith(q) || q.startsWith(k));
+      if (match) return _index[match];
 
-      // Query starts with product name
-      match = _db.find(p => q.startsWith(p.search_key) && p.search_key.length > 3);
-      if (match) return match;
-
-      // All words match
+      // 3. All words present in product name
       if (words.length > 0) {
-        match = _db.find(p => words.every(w => p.search_key.includes(w)));
+        const candidates = _wordIndex[words[0]] || [];
+        match = candidates.find(p => words.every(w => p.search_key.includes(w)));
         if (match) return match;
       }
 
-      // Any significant word matches
-      if (words.length > 0) {
-        const significant = words.filter(w => w.length > 4);
-        if (significant.length > 0) {
-          match = _db.find(p => significant.some(w => p.search_key.includes(w)));
-          if (match) return match;
-        }
+      // 4. Any significant word matches (4+ chars)
+      const sig = words.filter(w => w.length > 4);
+      for (const word of sig) {
+        const hits = _wordIndex[word];
+        if (hits?.length) return hits[0];
       }
 
       return null;
@@ -319,9 +327,22 @@ Return ONLY the JSON object, nothing else.`
       const [productImage, setProductImage] = useState(null);
       const fileRef = useRef();
 
+      React.useEffect(() => { loadDB(); }, []);
+
       async function analyzeText(q) {
         setLoading(true); setError(null); setResult(null); setProductImage(null);
         try {
+          // Check local database first — instant, no API cost
+          const db = await loadDB();
+          const dbMatch = searchDB(q);
+          if (dbMatch) {
+            const res = dbToResult(dbMatch);
+            setResult(res);
+            fetchProductImage(res.productName).then(img => setProductImage(img));
+            setLoading(false);
+            return;
+          }
+          // Not in database — fall back to AI
           const res = await callClaude([{ role:'user', content:'Analyze for kidney stone patients: ' + q }]);
           setResult(res);
           // Use image from Open Food Facts if server found one, otherwise search
