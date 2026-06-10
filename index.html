@@ -8,6 +8,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #f0f4ff; color: #1a1a1a; font-family: -apple-system, 'Segoe UI', sans-serif; }
@@ -24,11 +25,11 @@
     const { useState, useRef } = React;
 
     const SYSTEM_PROMPT = `You are StoneIQ, a nutritional analyzer for kidney stone patients. Return ONLY valid JSON, no markdown, no backticks, no extra text. Keep ALL text fields SHORT — max 1 sentence, under 12 words. Use this exact structure:
-{"productName":"string","overallScore":75,"scoreLabel":"Good","summary":"One short sentence, max 12 words.","stoneTypeRisks":{"calciumOxalate":{"risk":"Low","reason":"Max 8 words."},"uricAcid":{"risk":"Low","reason":"Max 8 words."},"struvite":{"risk":"Low","reason":"Max 8 words."},"cystine":{"risk":"Low","reason":"Max 8 words."}},"negatives":[{"name":"Ingredient","detail":"Max 8 words why bad.","oxalateLevel":"High","amount":""}],"positives":[{"name":"Ingredient","detail":"Max 8 words why good."}],"recommendations":[{"text":"Max 8 words.","product":"Real Brand Name","store":"Whole Foods / Target","amazonUrl":"https://www.amazon.com/s?k=product+name"}],"safeAlternatives":[{"name":"Real Brand Name","reason":"Max 8 words why safer.","store":"Whole Foods / Target","amazonUrl":"https://www.amazon.com/s?k=product+name"}]}
+{"productName":"string","overallScore":75,"scoreLabel":"Good","summary":"One short sentence, max 12 words.","stoneTypeRisks":{"calciumOxalate":{"risk":"Low","reason":"Max 8 words."},"uricAcid":{"risk":"Low","reason":"Max 8 words."},"struvite":{"risk":"Low","reason":"Max 8 words."},"cystine":{"risk":"Low","reason":"Max 8 words."}},"negatives":[{"name":"Ingredient","detail":"Max 8 words why bad.","oxalateLevel":"High","amount":""}],"positives":[{"name":"Ingredient","detail":"Max 8 words why good."}],"recommendations":[{"text":"Max 8 words.","product":"Real Brand Name","store":"Whole Foods / Target","amazonUrl":"https://www.amazon.com/s?k=product+name","imageUrl":"https://images-na.ssl-images-amazon.com/images/I/example.jpg"}],"safeAlternatives":[{"name":"Real Brand Name","reason":"Max 8 words why safer.","store":"Whole Foods / Target","amazonUrl":"https://www.amazon.com/s?k=product+name","imageUrl":"https://images-na.ssl-images-amazon.com/images/I/example.jpg"}]}
 scoreLabel: Excellent, Good, Moderate, Poor, or Very Poor
 risk: Low, Medium, or High
 oxalateLevel: None, Low, Medium, High, or Very High
-Suggest REAL US branded products for recommendations and safeAlternatives.
+Suggest REAL US branded products for recommendations and safeAlternatives. For imageUrl, provide a real Amazon product image URL for the product.
 Return ONLY the JSON object, nothing else.`;
 
     async function callClaude(messages) {
@@ -53,8 +54,93 @@ Return ONLY the JSON object, nothing else.`;
       return <span style={{ padding:'2px 10px', borderRadius:20, fontSize:11, fontWeight:500, color:c[risk]||'#555', background:bg[risk]||'#f5f5f5' }}>{risk}</span>;
     }
 
+    function BottomNav({ tab, setTab }) {
+      const tabs = [
+        { id:'search', icon:'ti-search', label:'Search' },
+        { id:'upload', icon:'ti-camera', label:'Upload' },
+        { id:'barcode', icon:'ti-barcode', label:'Barcode', center:true },
+        { id:'history', icon:'ti-history', label:'History' },
+        { id:'recipes', icon:'ti-tools-kitchen-2', label:'Recipes' },
+      ];
+      return (
+        <div style={{ position:'fixed', bottom:0, left:0, right:0, background:'#fff', borderTop:'0.5px solid #e0e7ff', padding:'10px 0 20px', display:'flex', alignItems:'flex-start', justifyContent:'space-around', zIndex:200 }}>
+          {tabs.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, flex:1, background:'none', border:'none', cursor:'pointer', marginTop: t.center ? -20 : 0 }}>
+              {t.center ? (
+                <div style={{ width:52, height:52, borderRadius:'50%', background:'#4f46e5', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(79,70,229,0.4)' }}>
+                  <i className={`ti ${t.icon}`} style={{ fontSize:22, color:'#fff' }} />
+                </div>
+              ) : (
+                <div style={{ width:28, height:28, borderRadius:8, background: tab===t.id ? '#eef2ff' : 'transparent', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <i className={`ti ${t.icon}`} style={{ fontSize:16, color: tab===t.id ? '#4f46e5' : '#aaa' }} />
+                </div>
+              )}
+              <span style={{ fontSize:10, fontWeight: tab===t.id ? 700 : 400, color: tab===t.id && !t.center ? '#4f46e5' : '#aaa' }}>{t.label}</span>
+            </button>
+          ))}
+        </div>
+      );
+    }
+
+    function ProfileScreen() {
+      const menuSections = [
+        {
+          items: [
+            { icon:'ti-user', label:'My Account' },
+            { icon:'ti-heart', label:'Stone Type Profile' },
+            { icon:'ti-bell', label:'Notifications' },
+          ]
+        },
+        {
+          items: [
+            { icon:'ti-info-circle', label:'About StoneIQ' },
+            { icon:'ti-book', label:'Kidney Stone Guide' },
+            { icon:'ti-shield', label:'Privacy Policy' },
+            { icon:'ti-mail', label:'Contact Us' },
+          ]
+        }
+      ];
+      return (
+        <div style={{ animation:'fadeIn 0.3s ease', paddingBottom:100 }}>
+          <div style={{ background:'#4f46e5', padding:'24px 18px 28px', textAlign:'center' }}>
+            <div style={{ width:64, height:64, borderRadius:'50%', background:'rgba(255,255,255,0.2)', margin:'0 auto 10px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:28 }}>👤</div>
+            <div style={{ fontSize:17, fontWeight:700, color:'#fff', marginBottom:2 }}>My Profile</div>
+            <div style={{ fontSize:11, color:'rgba(255,255,255,0.55)' }}>Kidney Stone Patient</div>
+          </div>
+          <div style={{ padding:'16px' }}>
+            {menuSections.map((section, si) => (
+              <div key={si} style={{ background:'#fff', borderRadius:14, overflow:'hidden', marginBottom:12, border:'0.5px solid #e0e7ff' }}>
+                {section.items.map((item, ii) => (
+                  <div key={ii} style={{ padding:'12px 16px', borderBottom: ii < section.items.length-1 ? '0.5px solid #f0f4ff' : 'none', display:'flex', alignItems:'center', gap:12, cursor:'pointer' }}>
+                    <i className={`ti ${item.icon}`} style={{ fontSize:16, color:'#4f46e5' }} />
+                    <span style={{ fontSize:13, color:'#1a1a1a', flex:1 }}>{item.label}</span>
+                    <i className="ti ti-chevron-right" style={{ fontSize:14, color:'#ccc' }} />
+                  </div>
+                ))}
+              </div>
+            ))}
+            <p style={{ fontSize:10, color:'#a5b4fc', textAlign:'center', lineHeight:1.7, padding:'4px 0 8px' }}>
+              ⚕️ For informational purposes only. Always consult a healthcare professional.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    function HistoryScreen() {
+      return (
+        <div style={{ animation:'fadeIn 0.3s ease', padding:'24px 16px', paddingBottom:100 }}>
+          <h2 style={{ fontSize:18, fontWeight:700, color:'#1a1a1a', marginBottom:16 }}>Recent Searches</h2>
+          <div style={{ background:'#fff', borderRadius:14, border:'0.5px solid #e0e7ff', padding:'48px 20px', textAlign:'center' }}>
+            <div style={{ fontSize:40, marginBottom:12 }}>🕐</div>
+            <p style={{ color:'#aaa', fontSize:13, lineHeight:1.7 }}>Your search history will appear here.<br />Start by searching a food or ingredient.</p>
+          </div>
+        </div>
+      );
+    }
+
     function App() {
-      const [mode, setMode] = useState('search');
+      const [tab, setTab] = useState('search');
       const [input, setInput] = useState('');
       const [loading, setLoading] = useState(false);
       const [result, setResult] = useState(null);
@@ -99,9 +185,9 @@ Return ONLY the JSON object, nothing else.`;
       const scoreBadgeColor = result ? (result.overallScore>=80?'#bbf7d0':result.overallScore>=60?'#d9f99d':result.overallScore>=40?'#fed7aa':'#fecaca') : '';
 
       return (
-        <div style={{ minHeight:'100vh', background:'#f0f4ff', paddingBottom:60 }}>
+        <div style={{ minHeight:'100vh', background:'#f0f4ff' }}>
 
-          <div style={{ background:'#4f46e5', padding:'22px 18px 18px', position:'sticky', top:0, zIndex:100 }}>
+          <div style={{ background:'#4f46e5', padding:'22px 18px 16px', position:'sticky', top:0, zIndex:100 }}>
             <div style={{ maxWidth:540, margin:'0 auto', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                 <div style={{ width:34, height:34, borderRadius:8, background:'rgba(255,255,255,0.18)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>🛡</div>
@@ -110,89 +196,116 @@ Return ONLY the JSON object, nothing else.`;
                   <p style={{ fontSize:10, color:'rgba(255,255,255,0.55)', margin:0, letterSpacing:1.5, textTransform:'uppercase' }}>Kidney stone safety</p>
                 </div>
               </div>
-              {result && <button onClick={reset} style={{ fontSize:13, color:'rgba(255,255,255,0.8)', background:'rgba(255,255,255,0.15)', border:'none', cursor:'pointer', fontWeight:600, padding:'6px 14px', borderRadius:20 }}>← Back</button>}
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                {result && <button onClick={reset} style={{ fontSize:13, color:'rgba(255,255,255,0.8)', background:'rgba(255,255,255,0.15)', border:'none', cursor:'pointer', fontWeight:600, padding:'6px 14px', borderRadius:20 }}>← Back</button>}
+                <button onClick={() => setTab('profile')} style={{ width:34, height:34, borderRadius:'50%', background:'rgba(255,255,255,0.18)', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>👤</button>
+              </div>
             </div>
           </div>
 
-          <div style={{ maxWidth:540, margin:'0 auto', padding:'0 16px' }}>
+          {tab === 'profile' && <ProfileScreen />}
 
-            {!result && (
-              <div style={{ animation:'fadeIn 0.3s ease' }}>
-                <div style={{ marginTop:20, display:'flex', background:'rgba(255,255,255,0.5)', borderRadius:12, padding:3 }}>
-                  {[['search','🔍 Search'],['upload','📷 Upload Label'],['barcode','📦 Barcode']].map(([m,l]) => (
-                    <button key={m} onClick={() => { setMode(m); reset(); }} style={{ flex:1, padding:'10px 6px', borderRadius:10, border:'none',
-                      background:mode===m?'#fff':'transparent', color:mode===m?'#4f46e5':'#888',
-                      fontSize:12, fontWeight:700, cursor:'pointer', boxShadow:mode===m?'0 1px 4px rgba(79,70,229,0.15)':'none', transition:'all 0.2s' }}>{l}</button>
-                  ))}
+          {tab === 'recipes' && (
+            <div style={{ padding:'24px 16px', paddingBottom:100, animation:'fadeIn 0.3s ease' }}>
+              <h2 style={{ fontSize:18, fontWeight:700, color:'#1a1a1a', marginBottom:6 }}>Kidney-Safe Recipes</h2>
+              <p style={{ fontSize:12, color:'#888', marginBottom:20 }}>Coming soon — low-oxalate recipes curated for stone patients.</p>
+              <div style={{ background:'#fff', borderRadius:14, border:'0.5px solid #e0e7ff', padding:'48px 20px', textAlign:'center' }}>
+                <div style={{ fontSize:48, marginBottom:14 }}>🍽️</div>
+                <p style={{ fontSize:15, fontWeight:700, color:'#1a1a1a', marginBottom:8 }}>Recipes Coming Soon</p>
+                <p style={{ color:'#aaa', fontSize:13, lineHeight:1.7, marginBottom:20 }}>We're building a library of delicious,<br />kidney stone-friendly recipes<br />just for you.</p>
+                <div style={{ display:'inline-block', padding:'10px 24px', borderRadius:20, background:'#eef2ff', border:'1.5px solid #c7d2fe', color:'#4f46e5', fontSize:13, fontWeight:700 }}>
+                  🔔 Notify Me When Live
                 </div>
-
-                <div style={{ marginTop:16 }}>
-                  {mode === 'search' && (
-                    <div style={{ display:'flex', gap:10 }}>
-                      <input value={input} onChange={e => setInput(e.target.value)}
-                        onKeyDown={e => e.key==='Enter' && !loading && input.trim() && analyzeText(input.trim())}
-                        placeholder="e.g. spinach, almonds, Truvani protein..."
-                        style={{ flex:1, padding:'14px 16px', borderRadius:14, background:'#fff', border:'1.5px solid #e0e7ff', color:'#1a1a1a', fontSize:15, outline:'none', boxShadow:'0 1px 4px rgba(79,70,229,0.08)' }} />
-                      <button onClick={() => input.trim() && analyzeText(input.trim())} disabled={loading || !input.trim()}
-                        style={{ padding:'14px 22px', borderRadius:14, background:'#4f46e5', border:'none', color:'#fff', fontSize:14, fontWeight:700, cursor:loading?'not-allowed':'pointer', opacity:loading?0.6:1, boxShadow:'0 2px 8px rgba(79,70,229,0.3)' }}>
-                        {loading ? '...' : 'Analyze'}
-                      </button>
-                    </div>
-                  )}
-
-                  {mode === 'upload' && (
-                    <div>
-                      <div onClick={() => fileRef.current?.click()} style={{ border:'2px dashed #c7d2fe', borderRadius:16, padding:'32px 20px', textAlign:'center', cursor:'pointer', background:'#fff', minHeight:140, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
-                        {imagePreview
-                          ? <img src={imagePreview} alt="label" style={{ maxHeight:220, borderRadius:10, maxWidth:'100%' }} />
-                          : <><div style={{ fontSize:40, marginBottom:10 }}>📷</div><p style={{ color:'#aaa', fontSize:13 }}>Tap to upload ingredient label photo</p></>}
-                      </div>
-                      <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display:'none' }} />
-                      {imagePreview && (
-                        <button onClick={() => analyzeImage(imageBase64, imageMime)} disabled={loading}
-                          style={{ width:'100%', marginTop:12, padding:'15px', borderRadius:14, background:'#4f46e5', border:'none', color:'#fff', fontSize:15, fontWeight:700, cursor:loading?'not-allowed':'pointer', opacity:loading?0.6:1 }}>
-                          {loading ? 'Analyzing...' : 'Analyze Label'}
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {mode === 'barcode' && (
-                    <div style={{ border:'2px dashed #c7d2fe', borderRadius:16, padding:'48px 20px', textAlign:'center', background:'#fff' }}>
-                      <div style={{ fontSize:40, marginBottom:12 }}>📦</div>
-                      <p style={{ color:'#aaa', fontSize:13, lineHeight:1.7 }}>Barcode scanning coming in v2.<br />Use <strong style={{ color:'#4f46e5' }}>Search</strong> or <strong style={{ color:'#4f46e5' }}>Upload Label</strong> for now.</p>
-                    </div>
-                  )}
-                </div>
-
-                {loading && (
-                  <div style={{ textAlign:'center', padding:'56px 20px' }}>
-                    <div style={{ width:44, height:44, borderRadius:'50%', border:'3px solid #e0e7ff', borderTopColor:'#4f46e5', animation:'spin 0.8s linear infinite', margin:'0 auto 16px' }} />
-                    <p style={{ color:'#888', fontSize:13 }}>Analyzing for kidney stone risk...</p>
-                  </div>
-                )}
-
-                {error && !loading && (
-                  <div style={{ marginTop:16, padding:16, borderRadius:14, background:'#fff1f2', border:'1px solid #fecdd3', color:'#e11d48', fontSize:13, lineHeight:1.6, wordBreak:'break-all' }}>
-                    <strong style={{ display:'block', marginBottom:4 }}>⚠️ Error</strong>{error}
-                  </div>
-                )}
-
-                {!loading && !error && (
-                  <div style={{ textAlign:'center', padding:'56px 20px' }}>
-                    <div style={{ fontSize:56, marginBottom:16 }}>🛡️</div>
-                    <p style={{ color:'#a5b4fc', fontSize:14, lineHeight:1.8 }}>
-                      Search any food or ingredient,<br />upload a product label photo,<br />or scan a barcode to get your<br />kidney stone safety score.
-                    </p>
-                  </div>
-                )}
               </div>
-            )}
+            </div>
+          )}
 
-            {result && !loading && (
-              <div style={{ animation:'fadeIn 0.4s ease' }}>
+          {tab === 'history' && <HistoryScreen />}
 
-                <div style={{ background:'#4f46e5', margin:'0 -16px', padding:'0 16px 20px' }}>
+          {tab === 'barcode' && !result && (
+            <div style={{ padding:'24px 16px', paddingBottom:100, animation:'fadeIn 0.3s ease' }}>
+              <div style={{ border:'2px dashed #c7d2fe', borderRadius:16, padding:'48px 20px', textAlign:'center', background:'#fff' }}>
+                <div style={{ fontSize:40, marginBottom:12 }}>📦</div>
+                <p style={{ color:'#aaa', fontSize:13, lineHeight:1.7 }}>Barcode scanning coming in v2.<br />Use <strong style={{ color:'#4f46e5' }}>Search</strong> or <strong style={{ color:'#4f46e5' }}>Upload</strong> for now.</p>
+              </div>
+            </div>
+          )}
+
+          {(tab === 'search' || tab === 'upload') && !result && (
+            <div style={{ maxWidth:540, margin:'0 auto', padding:'20px 16px', paddingBottom:100, animation:'fadeIn 0.3s ease' }}>
+
+              {tab === 'search' && (
+                <div>
+                  <div style={{ display:'flex', gap:10, marginBottom:8 }}>
+                    <input value={input} onChange={e => setInput(e.target.value)}
+                      onKeyDown={e => e.key==='Enter' && !loading && input.trim() && analyzeText(input.trim())}
+                      placeholder="e.g. spinach, almonds, Truvani protein..."
+                      style={{ flex:1, padding:'14px 16px', borderRadius:14, background:'#fff', border:'1.5px solid #e0e7ff', color:'#1a1a1a', fontSize:15, outline:'none', boxShadow:'0 1px 4px rgba(79,70,229,0.08)' }} />
+                    <button onClick={() => input.trim() && analyzeText(input.trim())} disabled={loading || !input.trim()}
+                      style={{ padding:'14px 22px', borderRadius:14, background:'#4f46e5', border:'none', color:'#fff', fontSize:14, fontWeight:700, cursor:loading?'not-allowed':'pointer', opacity:loading?0.6:1, boxShadow:'0 2px 8px rgba(79,70,229,0.3)' }}>
+                      {loading ? '...' : 'Analyze'}
+                    </button>
+                  </div>
+
+                  {loading && (
+                    <div style={{ textAlign:'center', padding:'56px 20px' }}>
+                      <div style={{ width:44, height:44, borderRadius:'50%', border:'3px solid #e0e7ff', borderTopColor:'#4f46e5', animation:'spin 0.8s linear infinite', margin:'0 auto 16px' }} />
+                      <p style={{ color:'#888', fontSize:13 }}>Analyzing for kidney stone risk...</p>
+                    </div>
+                  )}
+
+                  {error && !loading && (
+                    <div style={{ marginTop:16, padding:16, borderRadius:14, background:'#fff1f2', border:'1px solid #fecdd3', color:'#e11d48', fontSize:13, lineHeight:1.6, wordBreak:'break-all' }}>
+                      <strong style={{ display:'block', marginBottom:4 }}>⚠️ Error</strong>{error}
+                    </div>
+                  )}
+
+                  {!loading && !error && (
+                    <div style={{ textAlign:'center', padding:'48px 20px' }}>
+                      <div style={{ fontSize:52, marginBottom:16 }}>🛡️</div>
+                      <p style={{ color:'#a5b4fc', fontSize:14, lineHeight:1.8 }}>
+                        Search any food or ingredient<br />to get your kidney stone safety score.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {tab === 'upload' && (
+                <div>
+                  <div onClick={() => fileRef.current?.click()} style={{ border:'2px dashed #c7d2fe', borderRadius:16, padding:'32px 20px', textAlign:'center', cursor:'pointer', background:'#fff', minHeight:160, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', marginBottom:12 }}>
+                    {imagePreview
+                      ? <img src={imagePreview} alt="label" style={{ maxHeight:220, borderRadius:10, maxWidth:'100%' }} />
+                      : <><div style={{ fontSize:40, marginBottom:10 }}>📷</div><p style={{ color:'#aaa', fontSize:13 }}>Tap to upload ingredient label photo</p></>}
+                  </div>
+                  <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display:'none' }} />
+                  {imagePreview && (
+                    <button onClick={() => analyzeImage(imageBase64, imageMime)} disabled={loading}
+                      style={{ width:'100%', padding:'15px', borderRadius:14, background:'#4f46e5', border:'none', color:'#fff', fontSize:15, fontWeight:700, cursor:loading?'not-allowed':'pointer', opacity:loading?0.6:1 }}>
+                      {loading ? 'Analyzing...' : 'Analyze Label'}
+                    </button>
+                  )}
+                  {loading && (
+                    <div style={{ textAlign:'center', padding:'32px 20px' }}>
+                      <div style={{ width:44, height:44, borderRadius:'50%', border:'3px solid #e0e7ff', borderTopColor:'#4f46e5', animation:'spin 0.8s linear infinite', margin:'0 auto 16px' }} />
+                      <p style={{ color:'#888', fontSize:13 }}>Analyzing for kidney stone risk...</p>
+                    </div>
+                  )}
+                  {error && !loading && (
+                    <div style={{ marginTop:16, padding:16, borderRadius:14, background:'#fff1f2', border:'1px solid #fecdd3', color:'#e11d48', fontSize:13, lineHeight:1.6, wordBreak:'break-all' }}>
+                      <strong style={{ display:'block', marginBottom:4 }}>⚠️ Error</strong>{error}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {result && !loading && (
+            <div style={{ animation:'fadeIn 0.4s ease', paddingBottom:100 }}>
+
+              <div style={{ background:'#4f46e5', padding:'0 16px 20px' }}>
+                <div style={{ maxWidth:540, margin:'0 auto' }}>
                   <div style={{ background:'rgba(255,255,255,0.12)', borderRadius:16, padding:16, display:'flex', alignItems:'center', gap:16 }}>
                     <div style={{ textAlign:'center', flexShrink:0 }}>
                       <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
@@ -210,84 +323,94 @@ Return ONLY the JSON object, nothing else.`;
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <div style={{ paddingTop:16 }}>
+              <div style={{ maxWidth:540, margin:'0 auto', padding:'16px 16px 0' }}>
 
+                <div style={{ background:'#fff', borderRadius:14, padding:16, marginBottom:10, border:'0.5px solid #e0e7ff' }}>
+                  <button onClick={() => setExpandedStones(!expandedStones)}
+                    style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', background:'none', border:'none', cursor:'pointer', padding:0 }}>
+                    <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', margin:0 }}>Risk by stone type</p>
+                    <span style={{ fontSize:16, color:'#aaa', transform:expandedStones?'rotate(180deg)':'none', transition:'0.2s' }}>⌄</span>
+                  </button>
+                  {expandedStones && (
+                    <div style={{ marginTop:12, display:'flex', flexDirection:'column', gap:8 }}>
+                      {Object.entries(result.stoneTypeRisks||{}).map(([type, data]) => (
+                        <div key={type} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:8, borderBottom:'0.5px solid #f5f5f7' }}>
+                          <div>
+                            <span style={{ fontSize:12, fontWeight:600, color:'#1a1a1a', display:'block' }}>
+                              {type==='calciumOxalate'?'Calcium Oxalate':type==='uricAcid'?'Uric Acid':type==='struvite'?'Struvite':'Cystine'}
+                            </span>
+                            <span style={{ fontSize:11, color:'#888' }}>{data.reason}</span>
+                          </div>
+                          <RiskPill risk={data.risk} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {(result.negatives||[]).length > 0 && (
                   <div style={{ background:'#fff', borderRadius:14, padding:16, marginBottom:10, border:'0.5px solid #e0e7ff' }}>
-                    <button onClick={() => setExpandedStones(!expandedStones)}
-                      style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', background:'none', border:'none', cursor:'pointer', padding:0 }}>
-                      <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', margin:0 }}>Risk by stone type</p>
-                      <span style={{ fontSize:16, color:'#aaa', transform:expandedStones?'rotate(180deg)':'none', transition:'0.2s' }}>⌄</span>
-                    </button>
-                    {expandedStones && (
-                      <div style={{ marginTop:12, display:'flex', flexDirection:'column', gap:8 }}>
-                        {Object.entries(result.stoneTypeRisks||{}).map(([type, data]) => (
-                          <div key={type} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:8, borderBottom:'0.5px solid #f5f5f7' }}>
-                            <div>
-                              <span style={{ fontSize:12, fontWeight:600, color:'#1a1a1a', display:'block' }}>
-                                {type==='calciumOxalate'?'Calcium Oxalate':type==='uricAcid'?'Uric Acid':type==='struvite'?'Struvite':'Cystine'}
-                              </span>
-                              <span style={{ fontSize:11, color:'#888' }}>{data.reason}</span>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+                      <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', margin:0 }}>Negatives</p>
+                      <span style={{ fontSize:11, color:'#aaa' }}>per serving</span>
+                    </div>
+                    {result.negatives.map((item,i,arr) => (
+                      <div key={i} style={{ display:'flex', gap:10, alignItems:'flex-start', paddingBottom:i<arr.length-1?12:0, marginBottom:i<arr.length-1?12:0, borderBottom:i<arr.length-1?'0.5px solid #f5f5f7':'none' }}>
+                        <div style={{ width:30, height:30, borderRadius:8, background:'#fff1f2', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, flexShrink:0 }}>⚠️</div>
+                        <div style={{ flex:1 }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                            <span style={{ fontSize:13, fontWeight:600, color:'#1a1a1a' }}>{item.name}</span>
+                            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                              {item.oxalateLevel && item.oxalateLevel!=='None' && item.oxalateLevel!=='Low' && (
+                                <span style={{ padding:'2px 7px', borderRadius:6, background:'#fee2e2', color:'#b91c1c', fontSize:10, fontWeight:500 }}>{item.oxalateLevel}</span>
+                              )}
+                              <div style={{ width:9, height:9, borderRadius:'50%', background:'#ef4444' }} />
                             </div>
-                            <RiskPill risk={data.risk} />
                           </div>
-                        ))}
+                          <p style={{ fontSize:11, color:'#888', margin:'2px 0 0' }}>{item.detail}</p>
+                        </div>
                       </div>
-                    )}
+                    ))}
                   </div>
+                )}
 
-                  {(result.negatives||[]).length > 0 && (
-                    <div style={{ background:'#fff', borderRadius:14, padding:16, marginBottom:10, border:'0.5px solid #e0e7ff' }}>
-                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-                        <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', margin:0 }}>Negatives</p>
-                        <span style={{ fontSize:11, color:'#aaa' }}>per serving</span>
-                      </div>
-                      {result.negatives.map((item,i,arr) => (
-                        <div key={i} style={{ display:'flex', gap:10, alignItems:'flex-start', paddingBottom:i<arr.length-1?12:0, marginBottom:i<arr.length-1?12:0, borderBottom:i<arr.length-1?'0.5px solid #f5f5f7':'none' }}>
-                          <div style={{ width:30, height:30, borderRadius:8, background:'#fff1f2', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, flexShrink:0 }}>⚠️</div>
-                          <div style={{ flex:1 }}>
-                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                              <span style={{ fontSize:13, fontWeight:600, color:'#1a1a1a' }}>{item.name}</span>
-                              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                                {item.oxalateLevel && item.oxalateLevel!=='None' && item.oxalateLevel!=='Low' && (
-                                  <span style={{ padding:'2px 7px', borderRadius:6, background:'#fee2e2', color:'#b91c1c', fontSize:10, fontWeight:500 }}>{item.oxalateLevel}</span>
-                                )}
-                                <div style={{ width:9, height:9, borderRadius:'50%', background:'#ef4444' }} />
-                              </div>
-                            </div>
-                            <p style={{ fontSize:11, color:'#888', margin:'2px 0 0' }}>{item.detail}</p>
-                          </div>
-                        </div>
-                      ))}
+                {(result.positives||[]).length > 0 && (
+                  <div style={{ background:'#fff', borderRadius:14, padding:16, marginBottom:10, border:'0.5px solid #e0e7ff' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+                      <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', margin:0 }}>Positives</p>
+                      <span style={{ fontSize:11, color:'#aaa' }}>per serving</span>
                     </div>
-                  )}
-
-                  {(result.positives||[]).length > 0 && (
-                    <div style={{ background:'#fff', borderRadius:14, padding:16, marginBottom:10, border:'0.5px solid #e0e7ff' }}>
-                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-                        <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', margin:0 }}>Positives</p>
-                        <span style={{ fontSize:11, color:'#aaa' }}>per serving</span>
-                      </div>
-                      {result.positives.map((item,i,arr) => (
-                        <div key={i} style={{ display:'flex', gap:10, alignItems:'center', paddingBottom:i<arr.length-1?12:0, marginBottom:i<arr.length-1?12:0, borderBottom:i<arr.length-1?'0.5px solid #f5f5f7':'none' }}>
-                          <div style={{ width:30, height:30, borderRadius:8, background:'#f0fdf4', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, flexShrink:0 }}>✨</div>
-                          <div style={{ flex:1 }}>
-                            <span style={{ fontSize:13, fontWeight:600, color:'#1a1a1a', display:'block' }}>{item.name}</span>
-                            <p style={{ fontSize:11, color:'#888', margin:'2px 0 0' }}>{item.detail}</p>
-                          </div>
-                          <div style={{ width:9, height:9, borderRadius:'50%', background:'#22c55e', flexShrink:0 }} />
+                    {result.positives.map((item,i,arr) => (
+                      <div key={i} style={{ display:'flex', gap:10, alignItems:'center', paddingBottom:i<arr.length-1?12:0, marginBottom:i<arr.length-1?12:0, borderBottom:i<arr.length-1?'0.5px solid #f5f5f7':'none' }}>
+                        <div style={{ width:30, height:30, borderRadius:8, background:'#f0fdf4', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, flexShrink:0 }}>✨</div>
+                        <div style={{ flex:1 }}>
+                          <span style={{ fontSize:13, fontWeight:600, color:'#1a1a1a', display:'block' }}>{item.name}</span>
+                          <p style={{ fontSize:11, color:'#888', margin:'2px 0 0' }}>{item.detail}</p>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        <div style={{ width:9, height:9, borderRadius:'50%', background:'#22c55e', flexShrink:0 }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-                  {(result.recommendations||[]).length > 0 && (
-                    <div style={{ marginBottom:10 }}>
-                      <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', marginBottom:10, paddingLeft:2 }}>Recommendations</p>
-                      <div style={{ display:'flex', gap:12, overflowX:'auto', paddingBottom:8, scrollSnapType:'x mandatory' }}>
-                        {result.recommendations.map((r,i) => (
-                          <div key={i} style={{ minWidth:'calc(100vw - 48px)', maxWidth:'calc(100vw - 48px)', background:'#4f46e5', borderRadius:14, padding:16, flexShrink:0, scrollSnapAlign:'start' }}>
-                            <div style={{ width:32, height:32, borderRadius:8, background:'rgba(255,255,255,0.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, marginBottom:10 }}>🛒</div>
+                {(result.recommendations||[]).length > 0 && (
+                  <div style={{ marginBottom:10 }}>
+                    <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', marginBottom:10, paddingLeft:2 }}>Recommendations</p>
+                    <div style={{ display:'flex', gap:12, overflowX:'auto', paddingBottom:8, scrollSnapType:'x mandatory' }}>
+                      {result.recommendations.map((r,i) => (
+                        <div key={i} style={{ minWidth:'calc(100vw - 48px)', maxWidth:'calc(100vw - 48px)', background:'#4f46e5', borderRadius:14, overflow:'hidden', flexShrink:0, scrollSnapAlign:'start' }}>
+                          <div style={{ width:'100%', height:140, background:'#fff', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+                            {r.imageUrl ? (
+                              <img src={r.imageUrl} alt={r.product||'product'}
+                                style={{ width:'100%', height:'100%', objectFit:'cover' }}
+                                onError={e => { e.target.style.display='none'; e.target.parentElement.innerHTML='<div style="font-size:40px">🛒</div>'; }} />
+                            ) : (
+                              <div style={{ fontSize:40 }}>🛒</div>
+                            )}
+                          </div>
+                          <div style={{ padding:14 }}>
                             <p style={{ fontSize:11, color:'rgba(255,255,255,0.7)', marginBottom:6, lineHeight:1.4 }}>{typeof r==='string'?r:r.text}</p>
                             {r.product && <p style={{ fontSize:13, fontWeight:700, color:'#fff', marginBottom:3 }}>{r.product}</p>}
                             {r.store && <p style={{ fontSize:10, color:'rgba(255,255,255,0.5)', marginBottom:10 }}>📍 {r.store}</p>}
@@ -298,18 +421,28 @@ Return ONLY the JSON object, nothing else.`;
                               </a>
                             )}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {(result.safeAlternatives||[]).length > 0 && (
-                    <div style={{ marginBottom:10 }}>
-                      <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', marginBottom:10, paddingLeft:2 }}>Safer Alternatives</p>
-                      <div style={{ display:'flex', gap:12, overflowX:'auto', paddingBottom:8, scrollSnapType:'x mandatory' }}>
-                        {result.safeAlternatives.map((a,i) => (
-                          <div key={i} style={{ minWidth:'calc(100vw - 48px)', maxWidth:'calc(100vw - 48px)', background:'#fff', borderRadius:14, padding:16, border:'0.5px solid #e0e7ff', flexShrink:0, scrollSnapAlign:'start' }}>
-                            <div style={{ width:32, height:32, borderRadius:8, background:'#f0fdf4', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, marginBottom:10 }}>✅</div>
+                {(result.safeAlternatives||[]).length > 0 && (
+                  <div style={{ marginBottom:10 }}>
+                    <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', marginBottom:10, paddingLeft:2 }}>Safer Alternatives</p>
+                    <div style={{ display:'flex', gap:12, overflowX:'auto', paddingBottom:8, scrollSnapType:'x mandatory' }}>
+                      {result.safeAlternatives.map((a,i) => (
+                        <div key={i} style={{ minWidth:'calc(100vw - 48px)', maxWidth:'calc(100vw - 48px)', background:'#fff', borderRadius:14, overflow:'hidden', border:'0.5px solid #e0e7ff', flexShrink:0, scrollSnapAlign:'start' }}>
+                          <div style={{ width:'100%', height:140, background:'#f0fdf4', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+                            {a.imageUrl ? (
+                              <img src={a.imageUrl} alt={a.name||'product'}
+                                style={{ width:'100%', height:'100%', objectFit:'cover' }}
+                                onError={e => { e.target.style.display='none'; e.target.parentElement.innerHTML='<div style="font-size:40px">✅</div>'; }} />
+                            ) : (
+                              <div style={{ fontSize:40 }}>✅</div>
+                            )}
+                          </div>
+                          <div style={{ padding:14 }}>
                             <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', marginBottom:3 }}>{typeof a==='string'?a:a.name}</p>
                             {a.reason && <p style={{ fontSize:11, color:'#888', marginBottom:6, lineHeight:1.4 }}>{a.reason}</p>}
                             {a.store && <p style={{ fontSize:10, color:'#aaa', marginBottom:10 }}>📍 {a.store}</p>}
@@ -320,21 +453,23 @@ Return ONLY the JSON object, nothing else.`;
                               </a>
                             )}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
-
-                  <div style={{ padding:'12px 4px 24px', textAlign:'center' }}>
-                    <p style={{ fontSize:10, color:'#a5b4fc', lineHeight:1.7 }}>
-                      ⚕️ For informational purposes only. Always consult a qualified healthcare professional before making dietary or health decisions.
-                    </p>
                   </div>
+                )}
 
+                <div style={{ padding:'12px 4px 24px', textAlign:'center' }}>
+                  <p style={{ fontSize:10, color:'#a5b4fc', lineHeight:1.7 }}>
+                    ⚕️ For informational purposes only. Always consult a qualified healthcare professional.
+                  </p>
                 </div>
+
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          <BottomNav tab={tab} setTab={setTab} />
         </div>
       );
     }
