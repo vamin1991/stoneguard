@@ -85,6 +85,73 @@ Return ONLY the JSON object, nothing else.`
       return null;
     }
 
+    function getRecommendations(p) {
+      const recs = [];
+      const alts = [];
+      const name = (p.name + ' ' + p.brand).toLowerCase();
+      const cat = (p.category || '').toLowerCase();
+      const ox = p.oxalate_level || 'Low';
+      const sodium = p.sodium_mg || 0;
+      const score = p.score || 70;
+
+      // ── SAFER SWAPS by category ──────────────────────────────────────────
+      if (cat.includes('yogurt') || name.includes('yogurt') || name.includes('chobani') || name.includes('fage')) {
+        alts.push({ name:"Siggi's Plain Whole Milk Yogurt", reason:"Lower sugar, zero oxalate.", store:"Whole Foods / Target", amazonUrl:"https://www.amazon.com/s?k=siggi%27s+plain+yogurt", imageUrl:"" });
+        alts.push({ name:"Stonyfield Organic Plain Greek Yogurt", reason:"Zero oxalate, high calcium.", store:"Whole Foods", amazonUrl:"https://www.amazon.com/s?k=stonyfield+organic+plain+greek+yogurt", imageUrl:"" });
+      } else if (cat.includes('protein powder') || name.includes('whey') || name.includes('protein powder')) {
+        alts.push({ name:"Truvani Plant-Based Protein", reason:"Low oxalate pea protein. Stone safe.", store:"Whole Foods / Amazon", amazonUrl:"https://www.amazon.com/s?k=truvani+plant+protein", imageUrl:"" });
+        alts.push({ name:"Orgain Organic Plant Protein", reason:"Low oxalate, no animal protein.", store:"Target / Costco", amazonUrl:"https://www.amazon.com/s?k=orgain+organic+plant+protein", imageUrl:"" });
+      } else if (cat.includes('cereal') || name.includes('cereal') || name.includes('granola')) {
+        alts.push({ name:"Quaker Old Fashioned Oats", reason:"Zero oxalate. Best breakfast grain.", store:"Any grocery store", amazonUrl:"https://www.amazon.com/s?k=quaker+old+fashioned+oats", imageUrl:"" });
+        alts.push({ name:"Cream of Wheat", reason:"Zero oxalate. Calcium-fortified.", store:"Walmart / Target", amazonUrl:"https://www.amazon.com/s?k=cream+of+wheat", imageUrl:"" });
+      } else if (cat.includes('snack bar') || cat.includes('bar') || name.includes('kind bar') || name.includes('clif')) {
+        alts.push({ name:"Quest Bar (Chocolate Chip)", reason:"Low oxalate, high protein bar.", store:"Target / Amazon", amazonUrl:"https://www.amazon.com/s?k=quest+bar+chocolate+chip", imageUrl:"" });
+        alts.push({ name:"Built Bar", reason:"Very low oxalate. Lower sodium.", store:"Amazon", amazonUrl:"https://www.amazon.com/s?k=built+bar+protein", imageUrl:"" });
+      } else if (cat.includes('milk') || name.includes('almond milk') || name.includes('oat milk')) {
+        alts.push({ name:"Fairlife 2% Ultra-Filtered Milk", reason:"Zero oxalate, 2x calcium + protein.", store:"Walmart / Target", amazonUrl:"https://www.amazon.com/s?k=fairlife+2+percent+milk", imageUrl:"" });
+        alts.push({ name:"Oat Milk (Oatly)", reason:"Low oxalate milk alternative.", store:"Whole Foods / Target", amazonUrl:"https://www.amazon.com/s?k=oatly+oat+milk", imageUrl:"" });
+      } else if (cat.includes('frozen meal') || cat.includes('fast food')) {
+        alts.push({ name:"Grilled Chicken + White Rice", reason:"Zero oxalate meal. Easy to make.", store:"Any grocery store", amazonUrl:"https://www.amazon.com/s?k=frozen+grilled+chicken", imageUrl:"" });
+      } else if (name.includes('spinach') || name.includes('beet') || name.includes('swiss chard') || name.includes('rhubarb')) {
+        alts.push({ name:"Organic Arugula", reason:"Near-zero oxalate leafy green.", store:"Whole Foods / Trader Joe's", amazonUrl:"https://www.amazon.com/s?k=organic+arugula", imageUrl:"" });
+        alts.push({ name:"Kale (organic)", reason:"Low oxalate spinach alternative.", store:"Any grocery store", amazonUrl:"https://www.amazon.com/s?k=organic+kale", imageUrl:"" });
+      } else if (name.includes('almond') || name.includes('cashew') || name.includes('peanut')) {
+        alts.push({ name:"Macadamia Nuts", reason:"Low oxalate nut. Safe in portions.", store:"Whole Foods / Trader Joe's", amazonUrl:"https://www.amazon.com/s?k=macadamia+nuts+raw", imageUrl:"" });
+        alts.push({ name:"Pecans", reason:"Low oxalate nut alternative.", store:"Any grocery store", amazonUrl:"https://www.amazon.com/s?k=raw+pecans", imageUrl:"" });
+      } else if (name.includes('chocolate') || name.includes('cocoa')) {
+        alts.push({ name:"Carob Chips", reason:"Zero oxalate chocolate alternative.", store:"Whole Foods / Amazon", amazonUrl:"https://www.amazon.com/s?k=carob+chips", imageUrl:"" });
+      }
+
+      // ── ADD TO YOUR ROUTINE — always show these ──────────────────────────
+      // Always recommend hydration
+      recs.push({ text:"Drink 3L of water daily. Most important habit.", product:"Hydracy Large 1L Water Bottle", store:"Amazon / Target", amazonUrl:"https://www.amazon.com/s?k=large+water+bottle+1+liter", imageUrl:"" });
+
+      // High oxalate → recommend Chanca Piedra
+      if (['Very High','High','Medium'].includes(ox)) {
+        recs.push({ text:"Reduces oxalate absorption in gut.", product:"Stone Breaker Chanca Piedra", store:"Amazon / Whole Foods", amazonUrl:"https://www.amazon.com/s?k=chanca+piedra+stone+breaker+supplement", imageUrl:"" });
+      }
+
+      // Any stone risk → recommend lemon water
+      recs.push({ text:"Lemon citrate actively prevents stone formation.", product:"True Lemon Crystallized Lemon Packets", store:"Walmart / Amazon", amazonUrl:"https://www.amazon.com/s?k=true+lemon+packets", imageUrl:"" });
+
+      // High sodium → recommend low sodium alternatives
+      if (sodium > 400) {
+        recs.push({ text:"High sodium raises urine calcium. Reduce salt.", product:"NoSalt Potassium Chloride Salt Alternative", store:"Walmart / Amazon", amazonUrl:"https://www.amazon.com/s?k=nosalt+potassium+chloride", imageUrl:"" });
+      }
+
+      // Low score → recommend magnesium citrate
+      if (score < 60) {
+        recs.push({ text:"Magnesium binds oxalate in GI tract.", product:"NOW Foods Magnesium Citrate", store:"Whole Foods / Amazon", amazonUrl:"https://www.amazon.com/s?k=now+foods+magnesium+citrate", imageUrl:"" });
+      }
+
+      // High oxalate → recommend calcium with meals
+      if (['Very High','High'].includes(ox)) {
+        recs.push({ text:"Calcium eaten with food binds oxalate.", product:"Citracal Slow Release Calcium + D3", store:"Walgreens / CVS / Amazon", amazonUrl:"https://www.amazon.com/s?k=citracal+calcium+slow+release", imageUrl:"" });
+      }
+
+      return { recommendations: recs.slice(0,3), safeAlternatives: alts.slice(0,3) };
+    }
+
     function dbToResult(p) {
       const riskLabel = (r) => r || 'Low';
       return {
@@ -111,8 +178,7 @@ Return ONLY the JSON object, nothing else.`
           name: 'Protein',
           detail: `${p.protein_g}g per serving — good protein source.`
         }] : [],
-        recommendations: [],
-        safeAlternatives: [],
+        ...getRecommendations(p),
         _fromDB: true,
         _verified: p.verified,
         _source: p.source,
