@@ -24,11 +24,106 @@
   <script type="text/babel">
     const { useState, useRef } = React;
 
+    const SYSTEM_PROMPT = `You are StoneIQ, a nutritional analyzer for kidney stone patients. Return ONLY valid JSON, no markdown, no backticks, no extra text. Keep ALL text fields SHORT — max 1 sentence, under 12 words. Use this exact structure:
+{"productName":"string","overallScore":75,"scoreLabel":"Good","summary":"One short sentence, max 12 words.","stoneTypeRisks":{"calciumOxalate":{"risk":"Low","reason":"Max 8 words."},"uricAcid":{"risk":"Low","reason":"Max 8 words."},"struvite":{"risk":"Low","reason":"Max 8 words."},"cystine":{"risk":"Low","reason":"Max 8 words."}},"negatives":[{"name":"Ingredient","detail":"Max 8 words why bad.","oxalateLevel":"High","amount":""}],"positives":[{"name":"Ingredient","detail":"Max 8 words why good."}],"recommendations":[{"text":"Max 8 words why helpful for kidney stones.","product":"Real Brand Name","store":"Whole Foods / Target","amazonUrl":"https://www.amazon.com/s?k=product+name","imageUrl":"https://images-na.ssl-images-amazon.com/images/I/example.jpg"}],"safeAlternatives":[{"name":"Real Brand Name","reason":"Max 8 words why this is a safer swap.","store":"Whole Foods / Target","amazonUrl":"https://www.amazon.com/s?k=product+name","imageUrl":"https://images-na.ssl-images-amazon.com/images/I/example.jpg"}]}
+scoreLabel: Excellent, Good, Moderate, Poor, or Very Poor
+risk: Low, Medium, or High
+oxalateLevel: None, Low, Medium, High, or Very High
+
+CRITICAL RULES:
+- "safeAlternatives" must ONLY contain DIRECT SWAPS for the EXACT product scanned. If user scanned Chobani yogurt, suggest other yogurt brands lower in oxalate (e.g. Siggi's Plain Yogurt, Stonyfield Organic). NEVER suggest unrelated products here.
+- "recommendations" must ONLY contain kidney-stone-friendly products to ADD to daily routine (e.g. Chanca Piedra supplement, lemon juice, magnesium citrate). NOT swaps for the scanned product.
+- Both sections: suggest REAL US branded products only. Include store and Amazon URL.
+Return ONLY the JSON object, nothing else.`
+
+    const DB_URL = '/stoneiq-database.json';
+    let _db = null;
+
+    async function loadDB() {
+      if (_db) return _db;
+      try {
+        const res = await fetch(DB_URL);
+        _db = await res.json();
+      } catch(e) {
+        _db = [];
+      }
+      return _db;
+    }
+
+    function searchDB(query) {
+      if (!_db || !query) return null;
+      const q = query.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+      const words = q.split(' ').filter(w => w.length > 2);
+
+      // Exact match first
+      let match = _db.find(p => p.search_key === q);
+      if (match) return match;
+
+      // Starts with query
+      match = _db.find(p => p.search_key.startsWith(q));
+      if (match) return match;
+
+      // Query starts with product name
+      match = _db.find(p => q.startsWith(p.search_key) && p.search_key.length > 3);
+      if (match) return match;
+
+      // All words match
+      if (words.length > 0) {
+        match = _db.find(p => words.every(w => p.search_key.includes(w)));
+        if (match) return match;
+      }
+
+      // Any significant word matches
+      if (words.length > 0) {
+        const significant = words.filter(w => w.length > 4);
+        if (significant.length > 0) {
+          match = _db.find(p => significant.some(w => p.search_key.includes(w)));
+          if (match) return match;
+        }
+      }
+
+      return null;
+    }
+
+    function dbToResult(p) {
+      const riskLabel = (r) => r || 'Low';
+      return {
+        productName: p.brand ? `${p.brand} ${p.name}` : p.name,
+        overallScore: p.score || 70,
+        scoreLabel: p.score >= 80 ? 'Excellent' : p.score >= 60 ? 'Good' : p.score >= 40 ? 'Moderate' : p.score >= 20 ? 'Poor' : 'Very Poor',
+        summary: p.notes || `${p.oxalate_level} oxalate. ${p.safe === 'Yes' ? 'Safe for stone patients.' : p.safe === 'Limit' ? 'Use in moderation.' : 'Avoid or strictly limit.'}`,
+        stoneTypeRisks: {
+          calciumOxalate: { risk: riskLabel(p.calcium_oxalate_risk), reason: p.notes?.slice(0,50) || 'Based on oxalate content.' },
+          uricAcid: { risk: riskLabel(p.uric_acid_risk), reason: 'Based on purine content.' },
+          struvite: { risk: riskLabel(p.struvite_risk), reason: 'Minimal struvite risk.' },
+          cystine: { risk: riskLabel(p.cystine_risk), reason: 'Minimal cystine risk.' },
+        },
+        negatives: p.oxalate_level && !['None','Low'].includes(p.oxalate_level) ? [{
+          name: 'Oxalate Content',
+          detail: `${p.oxalate_level} oxalate${p.oxalate_mg ? ' — ' + p.oxalate_mg + 'mg per serving' : ''}.`,
+          oxalateLevel: p.oxalate_level,
+          amount: p.oxalate_mg ? `${p.oxalate_mg}mg` : ''
+        }] : [],
+        positives: p.calcium_mg > 100 ? [{
+          name: 'Calcium',
+          detail: `${p.calcium_mg}mg per serving — helps bind dietary oxalate.`
+        }] : p.protein_g > 10 ? [{
+          name: 'Protein',
+          detail: `${p.protein_g}g per serving — good protein source.`
+        }] : [],
+        recommendations: [],
+        safeAlternatives: [],
+        _fromDB: true,
+        _verified: p.verified,
+        _source: p.source,
+      };
+    }
+
     async function callClaude(messages) {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 2000, messages })
+        body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 2000, system: SYSTEM_PROMPT, messages })
       });
       const data = await res.json();
       if (!res.ok) throw new Error('API error ' + res.status + ': ' + JSON.stringify(data));
@@ -49,7 +144,9 @@
         if (product?.image_front_url) return product.image_front_url;
         if (product?.image_url) return product.image_url;
         return null;
-      } catch(e) { return null; }
+      } catch(e) {
+        return null;
+      }
     }
 
     function RiskPill({ risk }) {
@@ -79,7 +176,7 @@
                   <i className={`ti ${t.icon}`} style={{ fontSize:16, color: tab===t.id ? '#4f46e5' : '#aaa' }} />
                 </div>
               )}
-              <span style={{ fontSize:10, fontWeight: tab===t.id ? 700 : 400, color: tab===t.id && !t.center ? '#4f46e5' : '#aaa' }}>{t.label}</span>
+              <span style={{ fontSize:10, fontWeight: tab===t.id ? 700 : 400, color: tab===t.id && !t.center ? '#4f46e5' : t.center ? '#aaa' : '#aaa' }}>{t.label}</span>
             </button>
           ))}
         </div>
@@ -88,17 +185,21 @@
 
     function ProfileScreen() {
       const menuSections = [
-        { items: [
-          { icon:'ti-user', label:'My Account' },
-          { icon:'ti-heart', label:'Stone Type Profile' },
-          { icon:'ti-bell', label:'Notifications' },
-        ]},
-        { items: [
-          { icon:'ti-info-circle', label:'About StoneIQ' },
-          { icon:'ti-book', label:'Kidney Stone Guide' },
-          { icon:'ti-shield', label:'Privacy Policy' },
-          { icon:'ti-mail', label:'Contact Us' },
-        ]}
+        {
+          items: [
+            { icon:'ti-user', label:'My Account' },
+            { icon:'ti-heart', label:'Stone Type Profile' },
+            { icon:'ti-bell', label:'Notifications' },
+          ]
+        },
+        {
+          items: [
+            { icon:'ti-info-circle', label:'About StoneIQ' },
+            { icon:'ti-book', label:'Kidney Stone Guide' },
+            { icon:'ti-shield', label:'Privacy Policy' },
+            { icon:'ti-mail', label:'Contact Us' },
+          ]
+        }
       ];
       return (
         <div style={{ animation:'fadeIn 0.3s ease', paddingBottom:100 }}>
@@ -157,6 +258,7 @@
         try {
           const res = await callClaude([{ role:'user', content:'Analyze for kidney stone patients: ' + q }]);
           setResult(res);
+          // Use image from Open Food Facts if server found one, otherwise search
           if (res._productImageUrl) {
             setProductImage(res._productImageUrl);
           } else {
@@ -197,6 +299,7 @@
       return (
         <div style={{ minHeight:'100vh', background:'#f0f4ff' }}>
 
+          {/* Header */}
           <div style={{ background:'#4f46e5', padding:'22px 18px 16px', position:'sticky', top:0, zIndex:100 }}>
             <div style={{ maxWidth:540, margin:'0 auto', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -208,18 +311,15 @@
               </div>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                 {result && <button onClick={reset} style={{ fontSize:13, color:'rgba(255,255,255,0.8)', background:'rgba(255,255,255,0.15)', border:'none', cursor:'pointer', fontWeight:600, padding:'6px 14px', borderRadius:20 }}>← Back</button>}
-                <button onClick={() => setTab('profile')} style={{ width:34, height:34, borderRadius:'50%', background:'#fff', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="8" r="4" fill="#4f46e5"/>
-                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                </button>
+                <button onClick={() => setTab('profile')} style={{ width:34, height:34, borderRadius:'50%', background:'rgba(255,255,255,0.18)', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>👤</button>
               </div>
             </div>
           </div>
 
+          {/* Profile tab */}
           {tab === 'profile' && <ProfileScreen />}
 
+          {/* Recipes tab */}
           {tab === 'recipes' && (
             <div style={{ padding:'24px 16px', paddingBottom:100, animation:'fadeIn 0.3s ease' }}>
               <h2 style={{ fontSize:18, fontWeight:700, color:'#1a1a1a', marginBottom:6 }}>Kidney-Safe Recipes</h2>
@@ -235,8 +335,10 @@
             </div>
           )}
 
+          {/* History tab */}
           {tab === 'history' && <HistoryScreen />}
 
+          {/* Barcode tab */}
           {tab === 'barcode' && !result && (
             <div style={{ padding:'24px 16px', paddingBottom:100, animation:'fadeIn 0.3s ease' }}>
               <div style={{ border:'2px dashed #c7d2fe', borderRadius:16, padding:'48px 20px', textAlign:'center', background:'#fff' }}>
@@ -246,37 +348,41 @@
             </div>
           )}
 
+          {/* Search & Upload tabs */}
           {(tab === 'search' || tab === 'upload') && !result && (
             <div style={{ maxWidth:540, margin:'0 auto', padding:'20px 16px', paddingBottom:100, animation:'fadeIn 0.3s ease' }}>
+
               {tab === 'search' && (
                 <div>
                   <div style={{ display:'flex', gap:10, marginBottom:8 }}>
                     <input value={input} onChange={e => setInput(e.target.value)}
                       onKeyDown={e => e.key==='Enter' && !loading && input.trim() && analyzeText(input.trim())}
-                      placeholder="e.g. spinach, almonds, Chobani yogurt..."
+                      placeholder="e.g. spinach, almonds, Truvani protein..."
                       style={{ flex:1, padding:'14px 16px', borderRadius:14, background:'#fff', border:'1.5px solid #e0e7ff', color:'#1a1a1a', fontSize:15, outline:'none', boxShadow:'0 1px 4px rgba(79,70,229,0.08)' }} />
                     <button onClick={() => input.trim() && analyzeText(input.trim())} disabled={loading || !input.trim()}
                       style={{ padding:'14px 22px', borderRadius:14, background:'#4f46e5', border:'none', color:'#fff', fontSize:14, fontWeight:700, cursor:loading?'not-allowed':'pointer', opacity:loading?0.6:1, boxShadow:'0 2px 8px rgba(79,70,229,0.3)' }}>
                       {loading ? '...' : 'Analyze'}
                     </button>
                   </div>
+
                   {loading && (
                     <div style={{ textAlign:'center', padding:'56px 20px' }}>
                       <div style={{ width:44, height:44, borderRadius:'50%', border:'3px solid #e0e7ff', borderTopColor:'#4f46e5', animation:'spin 0.8s linear infinite', margin:'0 auto 16px' }} />
-                      <p style={{ color:'#888', fontSize:13 }}>Checking Open Food Facts + analyzing...</p>
+                      <p style={{ color:'#888', fontSize:13 }}>Analyzing for kidney stone risk...</p>
                     </div>
                   )}
+
                   {error && !loading && (
                     <div style={{ marginTop:16, padding:16, borderRadius:14, background:'#fff1f2', border:'1px solid #fecdd3', color:'#e11d48', fontSize:13, lineHeight:1.6, wordBreak:'break-all' }}>
                       <strong style={{ display:'block', marginBottom:4 }}>⚠️ Error</strong>{error}
                     </div>
                   )}
+
                   {!loading && !error && (
                     <div style={{ textAlign:'center', padding:'48px 20px' }}>
                       <div style={{ fontSize:52, marginBottom:16 }}>🛡️</div>
                       <p style={{ color:'#a5b4fc', fontSize:14, lineHeight:1.8 }}>
-                        Search any food or ingredient<br />to get your kidney stone safety score.<br />
-                        <span style={{ fontSize:11, color:'#c7d2fe' }}>Powered by Open Food Facts + AI</span>
+                        Search any food or ingredient<br />to get your kidney stone safety score.
                       </p>
                     </div>
                   )}
@@ -313,8 +419,10 @@
             </div>
           )}
 
+          {/* Results */}
           {result && !loading && (
             <div style={{ animation:'fadeIn 0.4s ease', paddingBottom:100 }}>
+
               <div style={{ background:'#4f46e5', padding:'0 16px 20px' }}>
                 <div style={{ maxWidth:540, margin:'0 auto' }}>
                   <div style={{ background:'rgba(255,255,255,0.12)', borderRadius:16, padding:16 }}>
@@ -330,7 +438,6 @@
                         <h2 style={{ fontSize:17, fontWeight:700, color:'#fff', margin:'0 0 4px', lineHeight:1.2 }}>{result.productName}</h2>
                         <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8 }}>
                           <span style={{ padding:'3px 10px', borderRadius:20, background:scoreBadgeBg, color:scoreBadgeColor, fontSize:11, fontWeight:500 }}>{result.scoreLabel}</span>
-                          {result._source && <span style={{ padding:'3px 10px', borderRadius:20, background:'rgba(255,255,255,0.15)', color:'rgba(255,255,255,0.7)', fontSize:10 }}>📡 {result._source}</span>}
                         </div>
                         <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
                           <div style={{ width:12, height:12, borderRadius:'50%', background:dotColor, flexShrink:0 }} />
@@ -346,6 +453,7 @@
 
               <div style={{ maxWidth:540, margin:'0 auto', padding:'16px 16px 0' }}>
 
+                {/* Risk by stone type */}
                 <div style={{ background:'#fff', borderRadius:14, padding:16, marginBottom:10, border:'0.5px solid #e0e7ff' }}>
                   <button onClick={() => setExpandedStones(!expandedStones)}
                     style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', background:'none', border:'none', cursor:'pointer', padding:0 }}>
@@ -369,6 +477,7 @@
                   )}
                 </div>
 
+                {/* Negatives */}
                 {(result.negatives||[]).length > 0 && (
                   <div style={{ background:'#fff', borderRadius:14, padding:16, marginBottom:10, border:'0.5px solid #e0e7ff' }}>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
@@ -395,6 +504,7 @@
                   </div>
                 )}
 
+                {/* Positives */}
                 {(result.positives||[]).length > 0 && (
                   <div style={{ background:'#fff', borderRadius:14, padding:16, marginBottom:10, border:'0.5px solid #e0e7ff' }}>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
@@ -414,6 +524,7 @@
                   </div>
                 )}
 
+                {/* Recommendations */}
                 {(result.recommendations||[]).length > 0 && (
                   <div style={{ marginBottom:10 }}>
                     <div style={{ marginBottom:10, paddingLeft:2 }}>
@@ -425,9 +536,12 @@
                         <div key={i} style={{ minWidth:'calc(100vw - 48px)', maxWidth:'calc(100vw - 48px)', background:'#4f46e5', borderRadius:14, overflow:'hidden', flexShrink:0, scrollSnapAlign:'start' }}>
                           <div style={{ width:'100%', height:140, background:'#fff', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
                             {r.imageUrl ? (
-                              <img src={r.imageUrl} alt={r.product||'product'} style={{ width:'100%', height:'100%', objectFit:'cover' }}
+                              <img src={r.imageUrl} alt={r.product||'product'}
+                                style={{ width:'100%', height:'100%', objectFit:'cover' }}
                                 onError={e => { e.target.style.display='none'; e.target.parentElement.innerHTML='<div style="font-size:40px">🛒</div>'; }} />
-                            ) : <div style={{ fontSize:40 }}>🛒</div>}
+                            ) : (
+                              <div style={{ fontSize:40 }}>🛒</div>
+                            )}
                           </div>
                           <div style={{ padding:14 }}>
                             <p style={{ fontSize:11, color:'rgba(255,255,255,0.7)', marginBottom:6, lineHeight:1.4 }}>{typeof r==='string'?r:r.text}</p>
@@ -446,6 +560,7 @@
                   </div>
                 )}
 
+                {/* Safer Alternatives */}
                 {(result.safeAlternatives||[]).length > 0 && (
                   <div style={{ marginBottom:10 }}>
                     <div style={{ marginBottom:10, paddingLeft:2 }}>
@@ -457,9 +572,12 @@
                         <div key={i} style={{ minWidth:'calc(100vw - 48px)', maxWidth:'calc(100vw - 48px)', background:'#fff', borderRadius:14, overflow:'hidden', border:'0.5px solid #e0e7ff', flexShrink:0, scrollSnapAlign:'start' }}>
                           <div style={{ width:'100%', height:140, background:'#f0fdf4', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
                             {a.imageUrl ? (
-                              <img src={a.imageUrl} alt={a.name||'product'} style={{ width:'100%', height:'100%', objectFit:'cover' }}
+                              <img src={a.imageUrl} alt={a.name||'product'}
+                                style={{ width:'100%', height:'100%', objectFit:'cover' }}
                                 onError={e => { e.target.style.display='none'; e.target.parentElement.innerHTML='<div style="font-size:40px">✅</div>'; }} />
-                            ) : <div style={{ fontSize:40 }}>✅</div>}
+                            ) : (
+                              <div style={{ fontSize:40 }}>✅</div>
+                          )}
                           </div>
                           <div style={{ padding:14 }}>
                             <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', marginBottom:3 }}>{typeof a==='string'?a:a.name}</p>
@@ -495,10 +613,5 @@
 
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
-  <div style="text-align:center; padding: 24px 16px 40px; max-width:540px; margin:0 auto;">
-    <p style="font-size:11px; color:rgba(255,255,255,0.2); line-height:1.7;">
-      ⚕️ <strong style="color:rgba(255,255,255,0.3);">Medical Disclaimer:</strong> StoneGuard is for informational purposes only and does not constitute medical advice. Always consult a qualified healthcare professional or physician before making dietary or health decisions. Individual results may vary based on your specific medical condition.
-    </p>
-  </div>
 </body>
 </html>
