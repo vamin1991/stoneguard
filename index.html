@@ -200,6 +200,7 @@ Return ONLY the JSON object, nothing else.`;
             {result && !loading && (
               <div style={{ animation:"fadeIn 0.4s ease" }}>
 
+                {/* Product header */}
                 <div style={{ background:"#fff", borderRadius:20, padding:20, marginTop:16, marginBottom:12, boxShadow:"0 2px 12px rgba(0,0,0,0.07)" }}>
                   <div style={{ display:"flex", alignItems:"flex-start", gap:16 }}>
                     <div style={{ width:80, height:80, borderRadius:14, background:"linear-gradient(135deg,#f0f9ff,#e0f2fe)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:36, flexShrink:0 }}>🥗</div>
@@ -212,6 +213,31 @@ Return ONLY the JSON object, nothing else.`;
                   <p style={{ marginTop:14, fontSize:13, color:"#555", lineHeight:1.6, borderTop:"1px solid #f5f5f7", paddingTop:12 }}>{result.summary}</p>
                 </div>
 
+                {/* Risk by Stone Type - collapsible */}
+                <div style={{ background:"#fff", borderRadius:20, padding:20, marginBottom:12, boxShadow:"0 2px 12px rgba(0,0,0,0.07)" }}>
+                  <button onClick={() => setExpandedStones(!expandedStones)}
+                    style={{ width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center", background:"none", border:"none", cursor:"pointer", padding:0 }}>
+                    <h3 style={{ fontSize:18, fontWeight:800, color:"#1a1a1a" }}>Risk by Stone Type</h3>
+                    <span style={{ fontSize:18, color:"#aaa", transform:expandedStones?"rotate(180deg)":"none", transition:"0.2s" }}>⌄</span>
+                  </button>
+                  {expandedStones && (
+                    <div style={{ marginTop:14 }}>
+                      {Object.entries(result.stoneTypeRisks || {}).map(([type, data]) => (
+                        <div key={type} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", paddingBottom:12, marginBottom:12, borderBottom:"1px solid #f5f5f7" }}>
+                          <div style={{ flex:1, marginRight:12 }}>
+                            <span style={{ fontSize:14, fontWeight:700, color:"#1a1a1a", display:"block", marginBottom:3 }}>
+                              {type==="calciumOxalate"?"Calcium Oxalate":type==="uricAcid"?"Uric Acid":type==="struvite"?"Struvite":"Cystine"}
+                            </span>
+                            <p style={{ fontSize:12, color:"#888", lineHeight:1.5 }}>{data.reason}</p>
+                          </div>
+                          <RiskPill risk={data.risk} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Negatives */}
                 {(result.negatives||[]).length > 0 && (
                   <div style={{ background:"#fff", borderRadius:20, padding:20, marginBottom:12, boxShadow:"0 2px 12px rgba(0,0,0,0.07)" }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
@@ -241,6 +267,7 @@ Return ONLY the JSON object, nothing else.`;
                   </div>
                 )}
 
+                {/* Positives */}
                 {(result.positives||[]).length > 0 && (
                   <div style={{ background:"#fff", borderRadius:20, padding:20, marginBottom:12, boxShadow:"0 2px 12px rgba(0,0,0,0.07)" }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
@@ -260,43 +287,21 @@ Return ONLY the JSON object, nothing else.`;
                   </div>
                 )}
 
-                <div style={{ background:"#fff", borderRadius:20, padding:20, marginBottom:12, boxShadow:"0 2px 12px rgba(0,0,0,0.07)" }}>
-                  <button onClick={() => setExpandedStones(!expandedStones)}
-                    style={{ width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center", background:"none", border:"none", cursor:"pointer", padding:0 }}>
-                    <h3 style={{ fontSize:18, fontWeight:800, color:"#1a1a1a" }}>Risk by Stone Type</h3>
-                    <span style={{ fontSize:18, color:"#aaa", transform:expandedStones?"rotate(180deg)":"none", transition:"0.2s" }}>⌄</span>
-                  </button>
-                  {expandedStones && (
-                    <div style={{ marginTop:14 }}>
-                      {Object.entries(result.stoneTypeRisks || {}).map(([type, data]) => (
-                        <div key={type} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", paddingBottom:12, marginBottom:12, borderBottom:"1px solid #f5f5f7" }}>
-                          <div style={{ flex:1, marginRight:12 }}>
-                            <span style={{ fontSize:14, fontWeight:700, color:"#1a1a1a", display:"block", marginBottom:3 }}>
-                              {type==="calciumOxalate"?"Calcium Oxalate":type==="uricAcid"?"Uric Acid":type==="struvite"?"Struvite":"Cystine"}
-                            </span>
-                            <p style={{ fontSize:12, color:"#888", lineHeight:1.5 }}>{data.reason}</p>
-                          </div>
-                          <RiskPill risk={data.risk} />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
+                {/* Recommendations */}
                 {(result.recommendations||[]).length > 0 && (
                   <div style={{ marginBottom:12 }}>
                     <h3 style={{ fontSize:18, fontWeight:800, color:"#1a1a1a", marginBottom:12, paddingLeft:4 }}>Recommendations</h3>
                     <div style={{ display:"flex", gap:12, overflowX:"auto", paddingBottom:8, scrollbarWidth:"none" }}>
                       {result.recommendations.map((r, i) => (
-                        <div key={i} style={{ minWidth:200, background:"#fff", borderRadius:16, padding:16, boxShadow:"0 2px 12px rgba(0,0,0,0.07)", flexShrink:0 }}>
-                          <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#f0f9ff,#e0f2fe)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, marginBottom:10 }}>🛒</div>
-                          <p style={{ fontSize:12, color:"#555", lineHeight:1.5, marginBottom:8 }}>{typeof r === "string" ? r : r.text}</p>
-                          {r.product && <p style={{ fontSize:13, fontWeight:700, color:"#1a1a1a", marginBottom:4 }}>{r.product}</p>}
-                          {r.store && <p style={{ fontSize:11, color:"#aaa", marginBottom:8 }}>📍 {r.store}</p>}
+                        <div key={i} style={{ minWidth:170, background:"#fff", borderRadius:14, padding:12, boxShadow:"0 2px 12px rgba(0,0,0,0.07)", flexShrink:0 }}>
+                          <div style={{ width:32, height:32, borderRadius:8, background:"linear-gradient(135deg,#f0f9ff,#e0f2fe)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, marginBottom:8 }}>🛒</div>
+                          <p style={{ fontSize:11, color:"#555", lineHeight:1.4, marginBottom:6 }}>{typeof r === "string" ? r : r.text}</p>
+                          {r.product && <p style={{ fontSize:11, fontWeight:700, color:"#1a1a1a", marginBottom:3 }}>{r.product}</p>}
+                          {r.store && <p style={{ fontSize:10, color:"#aaa", marginBottom:6 }}>📍 {r.store}</p>}
                           {r.amazonUrl && (
                             <a href={r.amazonUrl} target="_blank" rel="noopener noreferrer"
-                              style={{ display:"block", padding:"7px 12px", borderRadius:10, background:"#fff8ee", border:"1px solid #fed7aa", color:"#ea580c", fontSize:12, fontWeight:700, textAlign:"center" }}>
-                              View on Amazon →
+                              style={{ display:"block", padding:"5px 8px", borderRadius:8, background:"#fff8ee", border:"1px solid #fed7aa", color:"#ea580c", fontSize:10, fontWeight:700, textAlign:"center" }}>
+                              Amazon →
                             </a>
                           )}
                         </div>
@@ -305,20 +310,21 @@ Return ONLY the JSON object, nothing else.`;
                   </div>
                 )}
 
+                {/* Safer Alternatives */}
                 {(result.safeAlternatives||[]).length > 0 && (
                   <div style={{ marginBottom:12 }}>
                     <h3 style={{ fontSize:18, fontWeight:800, color:"#1a1a1a", marginBottom:12, paddingLeft:4 }}>Safer Alternatives</h3>
                     <div style={{ display:"flex", gap:12, overflowX:"auto", paddingBottom:8, scrollbarWidth:"none" }}>
                       {result.safeAlternatives.map((a, i) => (
-                        <div key={i} style={{ minWidth:200, background:"#fff", borderRadius:16, padding:16, boxShadow:"0 2px 12px rgba(0,0,0,0.07)", flexShrink:0 }}>
-                          <div style={{ width:44, height:44, borderRadius:12, background:"#f0fdf4", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, marginBottom:10 }}>✅</div>
-                          <p style={{ fontSize:13, fontWeight:700, color:"#1a1a1a", marginBottom:4 }}>{typeof a === "string" ? a : a.name}</p>
-                          {a.reason && <p style={{ fontSize:12, color:"#555", lineHeight:1.5, marginBottom:8 }}>{a.reason}</p>}
-                          {a.store && <p style={{ fontSize:11, color:"#aaa", marginBottom:8 }}>📍 {a.store}</p>}
+                        <div key={i} style={{ minWidth:170, background:"#fff", borderRadius:14, padding:12, boxShadow:"0 2px 12px rgba(0,0,0,0.07)", flexShrink:0 }}>
+                          <div style={{ width:32, height:32, borderRadius:8, background:"#f0fdf4", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, marginBottom:8 }}>✅</div>
+                          <p style={{ fontSize:11, fontWeight:700, color:"#1a1a1a", marginBottom:3 }}>{typeof a === "string" ? a : a.name}</p>
+                          {a.reason && <p style={{ fontSize:11, color:"#555", lineHeight:1.4, marginBottom:6 }}>{a.reason}</p>}
+                          {a.store && <p style={{ fontSize:10, color:"#aaa", marginBottom:6 }}>📍 {a.store}</p>}
                           {a.amazonUrl && (
                             <a href={a.amazonUrl} target="_blank" rel="noopener noreferrer"
-                              style={{ display:"block", padding:"7px 12px", borderRadius:10, background:"#fff8ee", border:"1px solid #fed7aa", color:"#ea580c", fontSize:12, fontWeight:700, textAlign:"center" }}>
-                              View on Amazon →
+                              style={{ display:"block", padding:"5px 8px", borderRadius:8, background:"#fff8ee", border:"1px solid #fed7aa", color:"#ea580c", fontSize:10, fontWeight:700, textAlign:"center" }}>
+                              Amazon →
                             </a>
                           )}
                         </div>
@@ -327,6 +333,7 @@ Return ONLY the JSON object, nothing else.`;
                   </div>
                 )}
 
+                {/* Disclaimer */}
                 <div style={{ background:"#f5f5f7", borderRadius:14, padding:14, marginBottom:24, border:"1px solid #e5e5ea" }}>
                   <p style={{ fontSize:11, color:"#aaa", lineHeight:1.7, textAlign:"center" }}>
                     ⚕️ <strong style={{ color:"#888" }}>Medical Disclaimer:</strong> StoneGuard is for informational purposes only and does not constitute medical advice. Always consult a qualified healthcare professional before making dietary or health decisions.
