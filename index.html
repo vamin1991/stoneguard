@@ -3,17 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#080c14" />
+  <meta name="theme-color" content="#ffffff" />
   <title>StoneGuard — Kidney Stone Safety Analyzer</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #080c14; color: #f1f5f9; font-family: -apple-system, 'Segoe UI', sans-serif; }
-    input::placeholder { color: rgba(255,255,255,0.25); }
+    body { background: #f5f5f7; color: #1a1a1a; font-family: -apple-system, 'Segoe UI', sans-serif; }
+    input::placeholder { color: #aaa; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
     ::-webkit-scrollbar { width: 0; }
+    a { text-decoration: none; }
   </style>
 </head>
 <body>
@@ -21,84 +23,46 @@
   <script type="text/babel">
     const { useState, useRef } = React;
 
-    const STONE_TYPES = ["All Types", "Calcium Oxalate", "Uric Acid", "Struvite", "Cystine"];
-
     const SYSTEM_PROMPT = `You are StoneGuard, an expert nutritional analyzer for kidney stone patients. Analyze the food or ingredients provided and return ONLY valid JSON with no markdown, no backticks, no extra text. Use exactly this structure:
-{"productName":"string","overallScore":75,"scoreLabel":"Good","summary":"2-3 sentence plain language summary.","stoneTypeRisks":{"calciumOxalate":{"risk":"Low","reason":"reason"},"uricAcid":{"risk":"Low","reason":"reason"},"struvite":{"risk":"Low","reason":"reason"},"cystine":{"risk":"Low","reason":"reason"}},"ingredients":[{"name":"name","oxalateLevel":"Low","concern":"reason","flag":"good"}],"recommendations":[{"text":"recommendation text","product":"Actual Brand Product Name","store":"Whole Foods / Target","amazonUrl":"https://www.amazon.com/s?k=product+name"}],"safeAlternatives":[{"name":"Actual Brand Product Name","reason":"why it is safer","store":"Whole Foods / Target","amazonUrl":"https://www.amazon.com/s?k=product+name"}]}
+{"productName":"string","overallScore":75,"scoreLabel":"Good","summary":"2-3 sentence plain language summary.","stoneTypeRisks":{"calciumOxalate":{"risk":"Low","reason":"reason"},"uricAcid":{"risk":"Low","reason":"reason"},"struvite":{"risk":"Low","reason":"reason"},"cystine":{"risk":"Low","reason":"reason"}},"negatives":[{"name":"Ingredient Name","detail":"why it is bad","oxalateLevel":"High","amount":""}],"positives":[{"name":"Ingredient Name","detail":"why it is good"}],"recommendations":[{"text":"recommendation text","product":"Actual Brand Product Name","store":"Whole Foods / Target","amazonUrl":"https://www.amazon.com/s?k=product+name"}],"safeAlternatives":[{"name":"Actual Brand Product Name","reason":"why safer","store":"Whole Foods / Target","amazonUrl":"https://www.amazon.com/s?k=product+name"}]}
 scoreLabel must be one of: Excellent, Good, Moderate, Poor, Very Poor
 risk must be one of: Low, Medium, High
 oxalateLevel must be one of: None, Low, Medium, High, Very High
-flag must be one of: good, caution, warning, neutral
-For recommendations and safeAlternatives, always suggest REAL specific branded products available in the US (e.g. "Chanca Piedra by Stone Breaker", "LMNT Electrolyte Drink Mix", "Fairlife Core Power Protein Shake", "Harmless Harvest Coconut Water"). Include where to buy (Whole Foods, Target, Amazon, Walmart) and a real Amazon search URL for the product.
-Return ONLY the JSON object, absolutely nothing else.`;
+For recommendations and safeAlternatives, suggest REAL US branded products (e.g. "Chanca Piedra by Stone Breaker", "LMNT Electrolyte Drink Mix", "Fairlife Core Power"). Include store and Amazon search URL.
+Return ONLY the JSON object, nothing else.`;
 
     async function callClaude(messages) {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-5',
-          max_tokens: 2000,
-          system: SYSTEM_PROMPT,
-          messages
-        })
+        body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 2000, system: SYSTEM_PROMPT, messages })
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error('API error ' + res.status + ': ' + JSON.stringify(data));
       if (data.error) throw new Error(JSON.stringify(data.error));
-      if (!data.content?.length) throw new Error('Empty response: ' + JSON.stringify(data));
-
+      if (!data.content?.length) throw new Error('Empty response');
       const text = data.content.map(b => b.type === 'text' ? b.text : '').join('').trim();
       const match = text.match(/\{[\s\S]*\}/);
-      if (!match) throw new Error('No JSON returned: ' + text.slice(0, 200));
+      if (!match) throw new Error('No JSON returned');
       return JSON.parse(match[0]);
     }
 
-    function ScoreRing({ score }) {
-      const r = 54, circ = 2 * Math.PI * r;
-      const color = score >= 80 ? "#4ade80" : score >= 60 ? "#a3e635" : score >= 40 ? "#facc15" : score >= 20 ? "#fb923c" : "#f87171";
+    function ScoreDot({ score }) {
+      const color = score >= 80 ? "#22c55e" : score >= 60 ? "#84cc16" : score >= 40 ? "#f97316" : "#ef4444";
+      const label = score >= 80 ? "Excellent" : score >= 60 ? "Good" : score >= 40 ? "Poor" : "Very Poor";
       return (
-        <div style={{ position:"relative", width:140, height:140, margin:"0 auto" }}>
-          <svg width="140" height="140" style={{ transform:"rotate(-90deg)" }}>
-            <circle cx="70" cy="70" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="10" />
-            <circle cx="70" cy="70" r={r} fill="none" stroke={color} strokeWidth="10"
-              strokeDasharray={`${(score/100)*circ} ${circ}`} strokeLinecap="round"
-              style={{ transition:"stroke-dasharray 1.2s ease", filter:`drop-shadow(0 0 8px ${color})` }} />
-          </svg>
-          <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
-            <span style={{ fontSize:36, fontWeight:800, color, fontFamily:"monospace", lineHeight:1 }}>{score}</span>
-            <span style={{ fontSize:11, color:"rgba(255,255,255,0.5)", letterSpacing:2, textTransform:"uppercase", marginTop:2 }}>/ 100</span>
-          </div>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ width:18, height:18, borderRadius:"50%", background:color, flexShrink:0 }} />
+          <span style={{ fontSize:28, fontWeight:800, color:"#1a1a1a" }}>{score}/100</span>
+          <span style={{ fontSize:16, color:"#666", marginTop:2 }}>{label}</span>
         </div>
       );
     }
 
-    function RiskBadge({ risk }) {
-      const c = { Low:"#4ade80", Medium:"#facc15", High:"#f87171" };
-      const bg = { Low:"rgba(74,222,128,0.12)", Medium:"rgba(250,204,21,0.12)", High:"rgba(248,113,113,0.12)" };
-      return <span style={{ display:"inline-block", padding:"2px 10px", borderRadius:20, fontSize:11, fontWeight:700,
-        color:c[risk]||"#aaa", background:bg[risk]||"rgba(255,255,255,0.05)", border:`1px solid ${(c[risk]||"#aaa")}40` }}>{risk}</span>;
-    }
-
-    function FlagDot({ flag }) {
-      const c = { good:"#4ade80", caution:"#facc15", warning:"#f87171", neutral:"#94a3b8" };
-      const ic = { good:"✓", caution:"!", warning:"✗", neutral:"·" };
-      return <span style={{ width:22, height:22, borderRadius:"50%", background:`${c[flag]||"#94a3b8"}22`,
-        border:`1.5px solid ${c[flag]||"#94a3b8"}`, display:"inline-flex", alignItems:"center",
-        justifyContent:"center", fontSize:11, fontWeight:800, color:c[flag]||"#94a3b8", flexShrink:0 }}>{ic[flag]||"·"}</span>;
-    }
-
-    function OxBar({ level }) {
-      const lv = { None:0, Low:1, Medium:2, High:3, "Very High":4 };
-      const cl = ["#4ade80","#a3e635","#facc15","#fb923c","#f87171"];
-      const n = lv[level] ?? 0;
-      return (
-        <div style={{ display:"flex", gap:3, alignItems:"center" }}>
-          {[0,1,2,3,4].map(i => <div key={i} style={{ width:8, height:8, borderRadius:2, background:i<=n?cl[n]:"rgba(255,255,255,0.1)" }} />)}
-          <span style={{ fontSize:10, color:"rgba(255,255,255,0.4)", marginLeft:4 }}>{level}</span>
-        </div>
-      );
+    function RiskPill({ risk }) {
+      const c = { Low:"#22c55e", Medium:"#f97316", High:"#ef4444" };
+      const bg = { Low:"#dcfce7", Medium:"#ffedd5", High:"#fee2e2" };
+      return <span style={{ padding:"3px 10px", borderRadius:20, fontSize:12, fontWeight:700, color:c[risk]||"#666", background:bg[risk]||"#f5f5f5" }}>{risk} Risk</span>;
     }
 
     function App() {
@@ -110,6 +74,7 @@ Return ONLY the JSON object, absolutely nothing else.`;
       const [imagePreview, setImagePreview] = useState(null);
       const [imageBase64, setImageBase64] = useState(null);
       const [imageMime, setImageMime] = useState("image/jpeg");
+      const [expandedStones, setExpandedStones] = useState(false);
       const fileRef = useRef();
 
       async function analyzeText(q) {
@@ -139,185 +104,235 @@ Return ONLY the JSON object, absolutely nothing else.`;
         reader.readAsDataURL(file);
       }
 
-      function reset() { setResult(null); setInput(""); setImagePreview(null); setImageBase64(null); setError(null); }
-
-      const scoreColor = result ? (result.overallScore>=80?"#4ade80":result.overallScore>=60?"#a3e635":result.overallScore>=40?"#facc15":result.overallScore>=20?"#fb923c":"#f87171") : "#fff";
+      function reset() { setResult(null); setInput(""); setImagePreview(null); setImageBase64(null); setError(null); setExpandedStones(false); }
 
       return (
-        <div style={{ minHeight:"100vh", paddingBottom:60 }}>
-          <div style={{ background:"linear-gradient(180deg,#0f172a,#080c14)", borderBottom:"1px solid rgba(255,255,255,0.06)", padding:"32px 24px 20px", textAlign:"center" }}>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, marginBottom:6 }}>
-              <div style={{ width:40, height:40, borderRadius:12, background:"linear-gradient(135deg,#38bdf8,#6366f1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, boxShadow:"0 0 24px rgba(56,189,248,0.35)" }}>🛡</div>
-              <h1 style={{ fontSize:28, fontWeight:800, letterSpacing:-0.5, fontFamily:"monospace" }}>Stone<span style={{ color:"#38bdf8" }}>Guard</span></h1>
+        <div style={{ minHeight:"100vh", background:"#f5f5f7", paddingBottom:60 }}>
+
+          <div style={{ background:"#fff", borderBottom:"1px solid #eee", padding:"20px 20px 16px", position:"sticky", top:0, zIndex:100 }}>
+            <div style={{ maxWidth:540, margin:"0 auto", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{ width:36, height:36, borderRadius:10, background:"linear-gradient(135deg,#38bdf8,#6366f1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>🛡</div>
+                <div>
+                  <h1 style={{ fontSize:20, fontWeight:800, letterSpacing:-0.3 }}>Stone<span style={{ color:"#38bdf8" }}>Guard</span></h1>
+                  <p style={{ fontSize:11, color:"#999", marginTop:-1 }}>Kidney Stone Safety Analyzer</p>
+                </div>
+              </div>
+              {result && <button onClick={reset} style={{ fontSize:13, color:"#38bdf8", background:"none", border:"none", cursor:"pointer", fontWeight:600 }}>← Back</button>}
             </div>
-            <p style={{ fontSize:13, color:"rgba(255,255,255,0.35)", letterSpacing:0.5 }}>Kidney Stone Safety Analyzer</p>
           </div>
 
           <div style={{ maxWidth:540, margin:"0 auto", padding:"0 16px" }}>
-            <div style={{ marginTop:16, display:"flex", background:"rgba(255,255,255,0.04)", borderRadius:12, padding:4 }}>
-              {[["search","🔍 Search"],["upload","📷 Upload Label"],["barcode","📦 Barcode"]].map(([m,l]) => (
-                <button key={m} onClick={() => { setMode(m); reset(); }} style={{ flex:1, padding:"11px 6px", borderRadius:9, border:"none",
-                  background:mode===m?"rgba(56,189,248,0.15)":"transparent",
-                  color:mode===m?"#38bdf8":"rgba(255,255,255,0.4)",
-                  fontSize:12, fontWeight:700, cursor:"pointer" }}>{l}</button>
-              ))}
-            </div>
 
-            <div style={{ marginTop:16 }}>
-              {mode === "search" && (
-                <div style={{ display:"flex", gap:10 }}>
-                  <input value={input} onChange={e => setInput(e.target.value)}
-                    onKeyDown={e => e.key==="Enter" && !loading && input.trim() && analyzeText(input.trim())}
-                    placeholder="e.g. spinach, almonds, Truvani protein..."
-                    style={{ flex:1, padding:"14px 16px", borderRadius:12, background:"rgba(255,255,255,0.06)", border:"1.5px solid rgba(255,255,255,0.12)", color:"#f1f5f9", fontSize:15, outline:"none" }} />
-                  <button onClick={() => input.trim() && analyzeText(input.trim())} disabled={loading || !input.trim()}
-                    style={{ padding:"14px 22px", borderRadius:12, background:"linear-gradient(135deg,#38bdf8,#6366f1)", border:"none", color:"#fff", fontSize:14, fontWeight:700, cursor:loading?"not-allowed":"pointer", opacity:loading?0.6:1 }}>
-                    {loading ? "..." : "Analyze"}
-                  </button>
+            {!result && (
+              <div style={{ animation:"fadeIn 0.3s ease" }}>
+                <div style={{ marginTop:20, display:"flex", background:"#e8e8ed", borderRadius:12, padding:3 }}>
+                  {[["search","🔍 Search"],["upload","📷 Upload Label"],["barcode","📦 Barcode"]].map(([m,l]) => (
+                    <button key={m} onClick={() => { setMode(m); reset(); }} style={{ flex:1, padding:"10px 6px", borderRadius:10, border:"none",
+                      background:mode===m?"#fff":"transparent", color:mode===m?"#1a1a1a":"#888",
+                      fontSize:12, fontWeight:700, cursor:"pointer", boxShadow:mode===m?"0 1px 4px rgba(0,0,0,0.1)":"none", transition:"all 0.2s" }}>{l}</button>
+                  ))}
                 </div>
-              )}
 
-              {mode === "upload" && (
-                <div>
-                  <div onClick={() => fileRef.current?.click()} style={{ border:"2px dashed rgba(56,189,248,0.3)", borderRadius:16,
-                    padding:"32px 20px", textAlign:"center", cursor:"pointer", background:"rgba(56,189,248,0.03)", minHeight:120,
-                    display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
-                    {imagePreview
-                      ? <img src={imagePreview} alt="label" style={{ maxHeight:220, borderRadius:10, maxWidth:"100%" }} />
-                      : <><div style={{ fontSize:40, marginBottom:10 }}>📷</div>
-                        <p style={{ color:"rgba(255,255,255,0.35)", fontSize:13 }}>Tap to upload ingredient label photo</p></>}
-                  </div>
-                  <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display:"none" }} />
-                  {imagePreview && (
-                    <button onClick={() => analyzeImage(imageBase64, imageMime)} disabled={loading}
-                      style={{ width:"100%", marginTop:12, padding:"15px", borderRadius:12, background:"linear-gradient(135deg,#38bdf8,#6366f1)", border:"none", color:"#fff", fontSize:15, fontWeight:700, cursor:loading?"not-allowed":"pointer", opacity:loading?0.6:1 }}>
-                      {loading ? "Analyzing..." : "Analyze Label"}
-                    </button>
+                <div style={{ marginTop:16 }}>
+                  {mode === "search" && (
+                    <div style={{ display:"flex", gap:10 }}>
+                      <input value={input} onChange={e => setInput(e.target.value)}
+                        onKeyDown={e => e.key==="Enter" && !loading && input.trim() && analyzeText(input.trim())}
+                        placeholder="e.g. spinach, almonds, Truvani protein..."
+                        style={{ flex:1, padding:"14px 16px", borderRadius:14, background:"#fff", border:"1.5px solid #e5e5ea", color:"#1a1a1a", fontSize:15, outline:"none", boxShadow:"0 1px 4px rgba(0,0,0,0.06)" }} />
+                      <button onClick={() => input.trim() && analyzeText(input.trim())} disabled={loading || !input.trim()}
+                        style={{ padding:"14px 22px", borderRadius:14, background:"linear-gradient(135deg,#38bdf8,#6366f1)", border:"none", color:"#fff", fontSize:14, fontWeight:700, cursor:loading?"not-allowed":"pointer", opacity:loading?0.6:1 }}>
+                        {loading ? "..." : "Analyze"}
+                      </button>
+                    </div>
+                  )}
+
+                  {mode === "upload" && (
+                    <div>
+                      <div onClick={() => fileRef.current?.click()} style={{ border:"2px dashed #c7d2fe", borderRadius:16, padding:"32px 20px", textAlign:"center", cursor:"pointer", background:"#fff", minHeight:140, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
+                        {imagePreview
+                          ? <img src={imagePreview} alt="label" style={{ maxHeight:220, borderRadius:10, maxWidth:"100%" }} />
+                          : <><div style={{ fontSize:40, marginBottom:10 }}>📷</div><p style={{ color:"#aaa", fontSize:13 }}>Tap to upload ingredient label photo</p></>}
+                      </div>
+                      <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display:"none" }} />
+                      {imagePreview && (
+                        <button onClick={() => analyzeImage(imageBase64, imageMime)} disabled={loading}
+                          style={{ width:"100%", marginTop:12, padding:"15px", borderRadius:14, background:"linear-gradient(135deg,#38bdf8,#6366f1)", border:"none", color:"#fff", fontSize:15, fontWeight:700, cursor:loading?"not-allowed":"pointer", opacity:loading?0.6:1 }}>
+                          {loading ? "Analyzing..." : "Analyze Label"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {mode === "barcode" && (
+                    <div style={{ border:"2px dashed #e5e5ea", borderRadius:16, padding:"48px 20px", textAlign:"center", background:"#fff" }}>
+                      <div style={{ fontSize:40, marginBottom:12 }}>📦</div>
+                      <p style={{ color:"#aaa", fontSize:13, lineHeight:1.7 }}>Barcode scanning coming in v2.<br />Use <strong style={{ color:"#38bdf8" }}>Search</strong> or <strong style={{ color:"#38bdf8" }}>Upload Label</strong> for now.</p>
+                    </div>
                   )}
                 </div>
-              )}
 
-              {mode === "barcode" && (
-                <div style={{ border:"2px dashed rgba(255,255,255,0.08)", borderRadius:16, padding:"48px 20px", textAlign:"center" }}>
-                  <div style={{ fontSize:40, marginBottom:12 }}>📦</div>
-                  <p style={{ color:"rgba(255,255,255,0.35)", fontSize:13, lineHeight:1.7 }}>Barcode scanning coming in v2.<br />Use <strong style={{ color:"#38bdf8" }}>Search</strong> or <strong style={{ color:"#38bdf8" }}>Upload Label</strong> for now.</p>
-                </div>
-              )}
-            </div>
+                {loading && (
+                  <div style={{ textAlign:"center", padding:"56px 20px" }}>
+                    <div style={{ width:44, height:44, borderRadius:"50%", border:"3px solid #e5e5ea", borderTopColor:"#38bdf8", animation:"spin 0.8s linear infinite", margin:"0 auto 16px" }} />
+                    <p style={{ color:"#aaa", fontSize:13 }}>Analyzing for kidney stone risk...</p>
+                  </div>
+                )}
 
-            {loading && (
-              <div style={{ textAlign:"center", padding:"48px 20px" }}>
-                <div style={{ width:44, height:44, borderRadius:"50%", border:"3px solid rgba(56,189,248,0.15)", borderTopColor:"#38bdf8", animation:"spin 0.8s linear infinite", margin:"0 auto 16px" }} />
-                <p style={{ color:"rgba(255,255,255,0.35)", fontSize:13 }}>Analyzing for kidney stone risk...</p>
-              </div>
-            )}
+                {error && !loading && (
+                  <div style={{ marginTop:16, padding:16, borderRadius:14, background:"#fff1f2", border:"1px solid #fecdd3", color:"#e11d48", fontSize:13, lineHeight:1.6 }}>
+                    <strong style={{ display:"block", marginBottom:4 }}>⚠️ Error</strong>{error}
+                  </div>
+                )}
 
-            {error && !loading && (
-              <div style={{ marginTop:16, padding:16, borderRadius:12, background:"rgba(248,113,113,0.08)", border:"1px solid rgba(248,113,113,0.25)", color:"#fca5a5", fontSize:12, lineHeight:1.6, wordBreak:"break-all" }}>
-                <strong style={{ display:"block", marginBottom:4 }}>⚠️ Error</strong>{error}
+                {!loading && !error && (
+                  <div style={{ textAlign:"center", padding:"56px 20px" }}>
+                    <div style={{ fontSize:56, marginBottom:16 }}>🛡️</div>
+                    <p style={{ color:"#bbb", fontSize:14, lineHeight:1.8 }}>
+                      Search any food or ingredient,<br />upload a product label photo,<br />or scan a barcode to get your<br />kidney stone safety score.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
             {result && !loading && (
-              <div style={{ marginTop:24 }}>
-                <div style={{ background:"linear-gradient(135deg,rgba(56,189,248,0.07),rgba(99,102,241,0.07))", border:"1px solid rgba(255,255,255,0.08)", borderRadius:20, padding:"28px 20px", textAlign:"center", marginBottom:14 }}>
-                  <ScoreRing score={result.overallScore} />
-                  <div style={{ marginTop:14 }}>
-                    <span style={{ fontSize:17, fontWeight:800, color:scoreColor }}>{result.scoreLabel}</span>
-                    <h2 style={{ margin:"6px 0 0", fontSize:20, fontWeight:700 }}>{result.productName}</h2>
-                    <p style={{ margin:"10px 0 0", fontSize:13, color:"rgba(255,255,255,0.5)", lineHeight:1.65 }}>{result.summary}</p>
+              <div style={{ animation:"fadeIn 0.4s ease" }}>
+
+                <div style={{ background:"#fff", borderRadius:20, padding:20, marginTop:16, marginBottom:12, boxShadow:"0 2px 12px rgba(0,0,0,0.07)" }}>
+                  <div style={{ display:"flex", alignItems:"flex-start", gap:16 }}>
+                    <div style={{ width:80, height:80, borderRadius:14, background:"linear-gradient(135deg,#f0f9ff,#e0f2fe)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:36, flexShrink:0 }}>🥗</div>
+                    <div style={{ flex:1 }}>
+                      <h2 style={{ fontSize:20, fontWeight:800, color:"#1a1a1a", marginBottom:4, lineHeight:1.2 }}>{result.productName}</h2>
+                      <p style={{ fontSize:12, color:"#999", marginBottom:10 }}>Kidney Stone Risk Analysis</p>
+                      <ScoreDot score={result.overallScore} />
+                    </div>
                   </div>
+                  <p style={{ marginTop:14, fontSize:13, color:"#555", lineHeight:1.6, borderTop:"1px solid #f5f5f7", paddingTop:12 }}>{result.summary}</p>
                 </div>
 
-                <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, padding:16, marginBottom:14 }}>
-                  <h3 style={{ margin:"0 0 14px", fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:2, textTransform:"uppercase" }}>Risk by Stone Type</h3>
-                  {Object.entries(result.stoneTypeRisks || {}).map(([type, data]) => (
-                    <div key={type} style={{ marginBottom:12 }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3 }}>
-                        <span style={{ fontSize:13, fontWeight:600 }}>{type==="calciumOxalate"?"Calcium Oxalate":type==="uricAcid"?"Uric Acid":type==="struvite"?"Struvite":"Cystine"}</span>
-                        <RiskBadge risk={data.risk} />
-                      </div>
-                      <p style={{ margin:0, fontSize:11, color:"rgba(255,255,255,0.35)", lineHeight:1.5 }}>{data.reason}</p>
+                {(result.negatives||[]).length > 0 && (
+                  <div style={{ background:"#fff", borderRadius:20, padding:20, marginBottom:12, boxShadow:"0 2px 12px rgba(0,0,0,0.07)" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+                      <h3 style={{ fontSize:18, fontWeight:800, color:"#1a1a1a" }}>Negatives</h3>
+                      <span style={{ fontSize:12, color:"#aaa" }}>per serving</span>
                     </div>
-                  ))}
-                </div>
-
-                <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, padding:16, marginBottom:14 }}>
-                  <h3 style={{ margin:"0 0 14px", fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.4)", letterSpacing:2, textTransform:"uppercase" }}>Ingredient Analysis</h3>
-                  {(result.ingredients||[]).map((ing,i,arr) => (
-                    <div key={i} style={{ display:"flex", alignItems:"flex-start", gap:10, padding:"10px 0", borderBottom:i<arr.length-1?"1px solid rgba(255,255,255,0.05)":"none" }}>
-                      <FlagDot flag={ing.flag} />
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, marginBottom:4, flexWrap:"wrap" }}>
-                          <span style={{ fontSize:13, fontWeight:600 }}>{ing.name}</span>
-                          <OxBar level={ing.oxalateLevel} />
-                        </div>
-                        <p style={{ margin:0, fontSize:11, color:"rgba(255,255,255,0.4)", lineHeight:1.5 }}>{ing.concern}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div style={{ background:"rgba(56,189,248,0.04)", border:"1px solid rgba(56,189,248,0.12)", borderRadius:16, padding:16, marginBottom:14 }}>
-                  <h3 style={{ margin:"0 0 14px", fontSize:11, fontWeight:700, color:"#38bdf8", letterSpacing:2, textTransform:"uppercase" }}>Recommendations</h3>
-                  {(result.recommendations||[]).map((r,i) => (
-                    <div key={i} style={{ marginBottom:14, padding:12, borderRadius:12, background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)" }}>
-                      <div style={{ display:"flex", gap:8, marginBottom:8 }}>
-                        <span style={{ color:"#38bdf8", flexShrink:0 }}>→</span>
-                        <p style={{ margin:0, fontSize:13, color:"rgba(255,255,255,0.7)", lineHeight:1.5 }}>{typeof r === "string" ? r : r.text}</p>
-                      </div>
-                      {r.product && (
-                        <div style={{ marginLeft:20 }}>
-                          <p style={{ margin:"0 0 4px", fontSize:12, fontWeight:700, color:"#f1f5f9" }}>🛒 {r.product}</p>
-                          {r.store && <p style={{ margin:"0 0 6px", fontSize:11, color:"rgba(255,255,255,0.4)" }}>📍 {r.store}</p>}
-                          {r.amazonUrl && (
-                            <a href={r.amazonUrl} target="_blank" rel="noopener noreferrer"
-                              style={{ display:"inline-block", padding:"5px 12px", borderRadius:8, background:"rgba(255,153,0,0.15)", border:"1px solid rgba(255,153,0,0.3)", color:"#ff9900", fontSize:11, fontWeight:700, textDecoration:"none" }}>
-                              View on Amazon →
-                            </a>
+                    {result.negatives.map((item, i) => (
+                      <div key={i} style={{ display:"flex", alignItems:"flex-start", gap:12, paddingBottom:14, marginBottom:14, borderBottom:i<result.negatives.length-1?"1px solid #f5f5f7":"none" }}>
+                        <div style={{ width:36, height:36, borderRadius:10, background:"#fff1f2", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>⚠️</div>
+                        <div style={{ flex:1 }}>
+                          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:2 }}>
+                            <span style={{ fontSize:15, fontWeight:700, color:"#1a1a1a" }}>{item.name}</span>
+                            <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                              {item.amount && <span style={{ fontSize:12, color:"#aaa" }}>{item.amount}</span>}
+                              <div style={{ width:10, height:10, borderRadius:"50%", background:"#ef4444" }} />
+                            </div>
+                          </div>
+                          <p style={{ fontSize:12, color:"#888", lineHeight:1.5 }}>{item.detail}</p>
+                          {item.oxalateLevel && item.oxalateLevel !== "None" && item.oxalateLevel !== "Low" && (
+                            <span style={{ display:"inline-block", marginTop:4, padding:"2px 8px", borderRadius:8, background:"#fee2e2", color:"#dc2626", fontSize:11, fontWeight:600 }}>
+                              {item.oxalateLevel} Oxalate
+                            </span>
                           )}
                         </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                {(result.safeAlternatives||[]).length > 0 && (
-                  <div style={{ background:"rgba(74,222,128,0.04)", border:"1px solid rgba(74,222,128,0.12)", borderRadius:16, padding:16, marginBottom:14 }}>
-                    <h3 style={{ margin:"0 0 14px", fontSize:11, fontWeight:700, color:"#4ade80", letterSpacing:2, textTransform:"uppercase" }}>Safer Alternatives</h3>
-                    {result.safeAlternatives.map((a,i) => (
-                      <div key={i} style={{ marginBottom:14, padding:12, borderRadius:12, background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)" }}>
-                        <div style={{ display:"flex", gap:8, marginBottom:6 }}>
-                          <span style={{ color:"#4ade80", flexShrink:0 }}>✓</span>
-                          <p style={{ margin:0, fontSize:13, fontWeight:700, color:"#f1f5f9" }}>{typeof a === "string" ? a : a.name}</p>
-                        </div>
-                        {a.reason && <p style={{ margin:"0 0 6px 20px", fontSize:12, color:"rgba(255,255,255,0.5)", lineHeight:1.5 }}>{a.reason}</p>}
-                        {a.store && <p style={{ margin:"0 0 6px 20px", fontSize:11, color:"rgba(255,255,255,0.4)" }}>📍 {a.store}</p>}
-                        {a.amazonUrl && (
-                          <div style={{ marginLeft:20 }}>
-                            <a href={a.amazonUrl} target="_blank" rel="noopener noreferrer"
-                              style={{ display:"inline-block", padding:"5px 12px", borderRadius:8, background:"rgba(255,153,0,0.15)", border:"1px solid rgba(255,153,0,0.3)", color:"#ff9900", fontSize:11, fontWeight:700, textDecoration:"none" }}>
-                              View on Amazon →
-                            </a>
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
                 )}
 
-                <button onClick={reset} style={{ width:"100%", padding:"14px", borderRadius:12, border:"1px solid rgba(255,255,255,0.1)", background:"transparent", color:"rgba(255,255,255,0.35)", fontSize:13, cursor:"pointer" }}>
-                  ← Analyze Another Product
-                </button>
-              </div>
-            )}
+                {(result.positives||[]).length > 0 && (
+                  <div style={{ background:"#fff", borderRadius:20, padding:20, marginBottom:12, boxShadow:"0 2px 12px rgba(0,0,0,0.07)" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+                      <h3 style={{ fontSize:18, fontWeight:800, color:"#1a1a1a" }}>Positives</h3>
+                      <span style={{ fontSize:12, color:"#aaa" }}>per serving</span>
+                    </div>
+                    {result.positives.map((item, i) => (
+                      <div key={i} style={{ display:"flex", alignItems:"flex-start", gap:12, paddingBottom:14, marginBottom:14, borderBottom:i<result.positives.length-1?"1px solid #f5f5f7":"none" }}>
+                        <div style={{ width:36, height:36, borderRadius:10, background:"#f0fdf4", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>✨</div>
+                        <div style={{ flex:1 }}>
+                          <span style={{ fontSize:15, fontWeight:700, color:"#1a1a1a", display:"block", marginBottom:2 }}>{item.name}</span>
+                          <p style={{ fontSize:12, color:"#888", lineHeight:1.5 }}>{item.detail}</p>
+                        </div>
+                        <div style={{ width:10, height:10, borderRadius:"50%", background:"#22c55e", flexShrink:0, marginTop:4 }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-            {!result && !loading && !error && (
-              <div style={{ textAlign:"center", padding:"56px 20px" }}>
-                <div style={{ fontSize:52, marginBottom:16 }}>🛡️</div>
-                <p style={{ color:"rgba(255,255,255,0.2)", fontSize:14, lineHeight:1.8 }}>
-                  Search any food or ingredient,<br />upload a product label photo,<br />or scan a barcode to get your<br />kidney stone safety score.
-                </p>
+                <div style={{ background:"#fff", borderRadius:20, padding:20, marginBottom:12, boxShadow:"0 2px 12px rgba(0,0,0,0.07)" }}>
+                  <button onClick={() => setExpandedStones(!expandedStones)}
+                    style={{ width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center", background:"none", border:"none", cursor:"pointer", padding:0 }}>
+                    <h3 style={{ fontSize:18, fontWeight:800, color:"#1a1a1a" }}>Risk by Stone Type</h3>
+                    <span style={{ fontSize:18, color:"#aaa", transform:expandedStones?"rotate(180deg)":"none", transition:"0.2s" }}>⌄</span>
+                  </button>
+                  {expandedStones && (
+                    <div style={{ marginTop:14 }}>
+                      {Object.entries(result.stoneTypeRisks || {}).map(([type, data]) => (
+                        <div key={type} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", paddingBottom:12, marginBottom:12, borderBottom:"1px solid #f5f5f7" }}>
+                          <div style={{ flex:1, marginRight:12 }}>
+                            <span style={{ fontSize:14, fontWeight:700, color:"#1a1a1a", display:"block", marginBottom:3 }}>
+                              {type==="calciumOxalate"?"Calcium Oxalate":type==="uricAcid"?"Uric Acid":type==="struvite"?"Struvite":"Cystine"}
+                            </span>
+                            <p style={{ fontSize:12, color:"#888", lineHeight:1.5 }}>{data.reason}</p>
+                          </div>
+                          <RiskPill risk={data.risk} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {(result.recommendations||[]).length > 0 && (
+                  <div style={{ marginBottom:12 }}>
+                    <h3 style={{ fontSize:18, fontWeight:800, color:"#1a1a1a", marginBottom:12, paddingLeft:4 }}>Recommendations</h3>
+                    <div style={{ display:"flex", gap:12, overflowX:"auto", paddingBottom:8, scrollbarWidth:"none" }}>
+                      {result.recommendations.map((r, i) => (
+                        <div key={i} style={{ minWidth:200, background:"#fff", borderRadius:16, padding:16, boxShadow:"0 2px 12px rgba(0,0,0,0.07)", flexShrink:0 }}>
+                          <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#f0f9ff,#e0f2fe)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, marginBottom:10 }}>🛒</div>
+                          <p style={{ fontSize:12, color:"#555", lineHeight:1.5, marginBottom:8 }}>{typeof r === "string" ? r : r.text}</p>
+                          {r.product && <p style={{ fontSize:13, fontWeight:700, color:"#1a1a1a", marginBottom:4 }}>{r.product}</p>}
+                          {r.store && <p style={{ fontSize:11, color:"#aaa", marginBottom:8 }}>📍 {r.store}</p>}
+                          {r.amazonUrl && (
+                            <a href={r.amazonUrl} target="_blank" rel="noopener noreferrer"
+                              style={{ display:"block", padding:"7px 12px", borderRadius:10, background:"#fff8ee", border:"1px solid #fed7aa", color:"#ea580c", fontSize:12, fontWeight:700, textAlign:"center" }}>
+                              View on Amazon →
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(result.safeAlternatives||[]).length > 0 && (
+                  <div style={{ marginBottom:12 }}>
+                    <h3 style={{ fontSize:18, fontWeight:800, color:"#1a1a1a", marginBottom:12, paddingLeft:4 }}>Safer Alternatives</h3>
+                    <div style={{ display:"flex", gap:12, overflowX:"auto", paddingBottom:8, scrollbarWidth:"none" }}>
+                      {result.safeAlternatives.map((a, i) => (
+                        <div key={i} style={{ minWidth:200, background:"#fff", borderRadius:16, padding:16, boxShadow:"0 2px 12px rgba(0,0,0,0.07)", flexShrink:0 }}>
+                          <div style={{ width:44, height:44, borderRadius:12, background:"#f0fdf4", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, marginBottom:10 }}>✅</div>
+                          <p style={{ fontSize:13, fontWeight:700, color:"#1a1a1a", marginBottom:4 }}>{typeof a === "string" ? a : a.name}</p>
+                          {a.reason && <p style={{ fontSize:12, color:"#555", lineHeight:1.5, marginBottom:8 }}>{a.reason}</p>}
+                          {a.store && <p style={{ fontSize:11, color:"#aaa", marginBottom:8 }}>📍 {a.store}</p>}
+                          {a.amazonUrl && (
+                            <a href={a.amazonUrl} target="_blank" rel="noopener noreferrer"
+                              style={{ display:"block", padding:"7px 12px", borderRadius:10, background:"#fff8ee", border:"1px solid #fed7aa", color:"#ea580c", fontSize:12, fontWeight:700, textAlign:"center" }}>
+                              View on Amazon →
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ background:"#f5f5f7", borderRadius:14, padding:14, marginBottom:24, border:"1px solid #e5e5ea" }}>
+                  <p style={{ fontSize:11, color:"#aaa", lineHeight:1.7, textAlign:"center" }}>
+                    ⚕️ <strong style={{ color:"#888" }}>Medical Disclaimer:</strong> StoneGuard is for informational purposes only and does not constitute medical advice. Always consult a qualified healthcare professional before making dietary or health decisions.
+                  </p>
+                </div>
+
               </div>
             )}
           </div>
@@ -327,5 +342,10 @@ Return ONLY the JSON object, absolutely nothing else.`;
 
     ReactDOM.createRoot(document.getElementById("root")).render(<App />);
   </script>
+  <div style="text-align:center; padding: 24px 16px 40px; max-width:540px; margin:0 auto;">
+    <p style="font-size:11px; color:rgba(255,255,255,0.2); line-height:1.7;">
+      ⚕️ <strong style="color:rgba(255,255,255,0.3);">Medical Disclaimer:</strong> StoneGuard is for informational purposes only and does not constitute medical advice. Always consult a qualified healthcare professional or physician before making dietary or health decisions. Individual results may vary based on your specific medical condition.
+    </p>
+  </div>
 </body>
 </html>
