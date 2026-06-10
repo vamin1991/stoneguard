@@ -142,7 +142,7 @@ Return ONLY the JSON object, nothing else.`;
                         placeholder="e.g. spinach, almonds, Truvani protein..."
                         style={{ flex:1, padding:"14px 16px", borderRadius:14, background:"#fff", border:"1.5px solid #e5e5ea", color:"#1a1a1a", fontSize:15, outline:"none", boxShadow:"0 1px 4px rgba(0,0,0,0.06)" }} />
                       <button onClick={() => input.trim() && analyzeText(input.trim())} disabled={loading || !input.trim()}
-                        style={{ padding:"14px 22px", borderRadius:14, background:"linear-gradient(135deg,#38bdf8,#6366f1)", border:"none", color:"#fff", fontSize:14, fontWeight:700, cursor:loading?"not-allowed":"pointer", opacity:loading?0.6:1 }}>
+                        style={{ padding:"14px 22px", borderRadius:14, background:"linear-gradient(135deg,#38bdf8,#6366f1)", border:"none", color:"#fff", fontSize:14, fontWeight:700, cursor:loading?"not-allowed":"pointer", opacity:loading?0.6:1, boxShadow:"0 2px 8px rgba(56,189,248,0.3)" }}>
                         {loading ? "..." : "Analyze"}
                       </button>
                     </div>
@@ -150,7 +150,7 @@ Return ONLY the JSON object, nothing else.`;
 
                   {mode === "upload" && (
                     <div>
-                      <div onClick={() => fileRef.current?.click()} style={{ border:"2px dashed #c7d2fe", borderRadius:16, padding:"32px 20px", textAlign:"center", cursor:"pointer", background:"#fff", minHeight:140, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
+                      <div onClick={() => fileRef.current?.click()} style={{ border:"2px dashed #c7d2fe", borderRadius:16, padding:"32px 20px", textAlign:"center", cursor:"pointer", background:"#fff", minHeight:140, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 4px rgba(0,0,0,0.06)" }}>
                         {imagePreview
                           ? <img src={imagePreview} alt="label" style={{ maxHeight:220, borderRadius:10, maxWidth:"100%" }} />
                           : <><div style={{ fontSize:40, marginBottom:10 }}>📷</div><p style={{ color:"#aaa", fontSize:13 }}>Tap to upload ingredient label photo</p></>}
@@ -200,7 +200,6 @@ Return ONLY the JSON object, nothing else.`;
             {result && !loading && (
               <div style={{ animation:"fadeIn 0.4s ease" }}>
 
-                {/* Product header */}
                 <div style={{ background:"#fff", borderRadius:20, padding:20, marginTop:16, marginBottom:12, boxShadow:"0 2px 12px rgba(0,0,0,0.07)" }}>
                   <div style={{ display:"flex", alignItems:"flex-start", gap:16 }}>
                     <div style={{ width:80, height:80, borderRadius:14, background:"linear-gradient(135deg,#f0f9ff,#e0f2fe)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:36, flexShrink:0 }}>🥗</div>
@@ -213,7 +212,6 @@ Return ONLY the JSON object, nothing else.`;
                   <p style={{ marginTop:14, fontSize:13, color:"#555", lineHeight:1.6, borderTop:"1px solid #f5f5f7", paddingTop:12 }}>{result.summary}</p>
                 </div>
 
-                {/* Risk by Stone Type - collapsible */}
                 <div style={{ background:"#fff", borderRadius:20, padding:20, marginBottom:12, boxShadow:"0 2px 12px rgba(0,0,0,0.07)" }}>
                   <button onClick={() => setExpandedStones(!expandedStones)}
                     style={{ width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center", background:"none", border:"none", cursor:"pointer", padding:0 }}>
@@ -237,7 +235,6 @@ Return ONLY the JSON object, nothing else.`;
                   )}
                 </div>
 
-                {/* Negatives */}
                 {(result.negatives||[]).length > 0 && (
                   <div style={{ background:"#fff", borderRadius:20, padding:20, marginBottom:12, boxShadow:"0 2px 12px rgba(0,0,0,0.07)" }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
@@ -267,7 +264,6 @@ Return ONLY the JSON object, nothing else.`;
                   </div>
                 )}
 
-                {/* Positives */}
                 {(result.positives||[]).length > 0 && (
                   <div style={{ background:"#fff", borderRadius:20, padding:20, marginBottom:12, boxShadow:"0 2px 12px rgba(0,0,0,0.07)" }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
@@ -287,13 +283,12 @@ Return ONLY the JSON object, nothing else.`;
                   </div>
                 )}
 
-                {/* Recommendations */}
                 {(result.recommendations||[]).length > 0 && (
                   <div style={{ marginBottom:12 }}>
                     <h3 style={{ fontSize:18, fontWeight:800, color:"#1a1a1a", marginBottom:12, paddingLeft:4 }}>Recommendations</h3>
-                    <div style={{ display:"flex", gap:12, overflowX:"auto", paddingBottom:8, scrollbarWidth:"none" }}>
+                    <div style={{ display:"flex", gap:12, overflowX:"auto", paddingBottom:8, scrollbarWidth:"none", scrollSnapType:"x mandatory" }}>
                       {result.recommendations.map((r, i) => (
-                        <div key={i} style={{ minWidth:170, background:"#fff", borderRadius:14, padding:12, boxShadow:"0 2px 12px rgba(0,0,0,0.07)", flexShrink:0 }}>
+                        <div key={i} style={{ minWidth:"calc(100vw - 48px)", maxWidth:"calc(100vw - 48px)", background:"#fff", borderRadius:14, padding:16, boxShadow:"0 2px 12px rgba(0,0,0,0.07)", flexShrink:0, scrollSnapAlign:"start" }}>
                           <div style={{ width:32, height:32, borderRadius:8, background:"linear-gradient(135deg,#f0f9ff,#e0f2fe)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, marginBottom:8 }}>🛒</div>
                           <p style={{ fontSize:11, color:"#555", lineHeight:1.4, marginBottom:6 }}>{typeof r === "string" ? r : r.text}</p>
                           {r.product && <p style={{ fontSize:11, fontWeight:700, color:"#1a1a1a", marginBottom:3 }}>{r.product}</p>}
@@ -310,13 +305,12 @@ Return ONLY the JSON object, nothing else.`;
                   </div>
                 )}
 
-                {/* Safer Alternatives */}
                 {(result.safeAlternatives||[]).length > 0 && (
                   <div style={{ marginBottom:12 }}>
                     <h3 style={{ fontSize:18, fontWeight:800, color:"#1a1a1a", marginBottom:12, paddingLeft:4 }}>Safer Alternatives</h3>
-                    <div style={{ display:"flex", gap:12, overflowX:"auto", paddingBottom:8, scrollbarWidth:"none" }}>
+                    <div style={{ display:"flex", gap:12, overflowX:"auto", paddingBottom:8, scrollbarWidth:"none", scrollSnapType:"x mandatory" }}>
                       {result.safeAlternatives.map((a, i) => (
-                        <div key={i} style={{ minWidth:170, background:"#fff", borderRadius:14, padding:12, boxShadow:"0 2px 12px rgba(0,0,0,0.07)", flexShrink:0 }}>
+                        <div key={i} style={{ minWidth:"calc(100vw - 48px)", maxWidth:"calc(100vw - 48px)", background:"#fff", borderRadius:14, padding:16, boxShadow:"0 2px 12px rgba(0,0,0,0.07)", flexShrink:0, scrollSnapAlign:"start" }}>
                           <div style={{ width:32, height:32, borderRadius:8, background:"#f0fdf4", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, marginBottom:8 }}>✅</div>
                           <p style={{ fontSize:11, fontWeight:700, color:"#1a1a1a", marginBottom:3 }}>{typeof a === "string" ? a : a.name}</p>
                           {a.reason && <p style={{ fontSize:11, color:"#555", lineHeight:1.4, marginBottom:6 }}>{a.reason}</p>}
@@ -333,7 +327,6 @@ Return ONLY the JSON object, nothing else.`;
                   </div>
                 )}
 
-                {/* Disclaimer */}
                 <div style={{ background:"#f5f5f7", borderRadius:14, padding:14, marginBottom:24, border:"1px solid #e5e5ea" }}>
                   <p style={{ fontSize:11, color:"#aaa", lineHeight:1.7, textAlign:"center" }}>
                     ⚕️ <strong style={{ color:"#888" }}>Medical Disclaimer:</strong> StoneGuard is for informational purposes only and does not constitute medical advice. Always consult a qualified healthcare professional before making dietary or health decisions.
