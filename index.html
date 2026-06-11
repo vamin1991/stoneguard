@@ -257,7 +257,101 @@ Return ONLY the JSON object, nothing else.`
       );
     }
 
-    function ProfileScreen() {
+    function AdminScreen({ onBack }) {
+      const [scans, setScans] = React.useState([]);
+      const [stats, setStats] = React.useState(null);
+      const [loading, setLoading] = React.useState(true);
+      const [filter, setFilter] = React.useState('all');
+
+      React.useEffect(() => {
+        fetch('/api/get-scans?limit=100')
+          .then(r => r.json())
+          .then(data => {
+            setScans(data.scans || []);
+            setStats(data.stats || {});
+            setLoading(false);
+          })
+          .catch(() => setLoading(false));
+      }, []);
+
+      const filtered = filter === 'all' ? scans : scans.filter(s => s.status === filter);
+      const dotColor = (score) => score>=80?'#22c55e':score>=60?'#84cc16':score>=40?'#f97316':'#ef4444';
+
+      return (
+        <div style={{ animation:'fadeIn 0.3s ease', paddingBottom:100 }}>
+          <div style={{ background:'#4f46e5', padding:'16px 18px 20px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
+              <button onClick={onBack} style={{ background:'rgba(255,255,255,0.15)', border:'none', color:'#fff', padding:'6px 14px', borderRadius:20, fontSize:13, fontWeight:600, cursor:'pointer' }}>← Back</button>
+              <h2 style={{ fontSize:16, fontWeight:700, color:'#fff' }}>Admin — All Scans</h2>
+            </div>
+            {stats && (
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:8 }}>
+                {[
+                  { label:'Total', value:stats.total||0 },
+                  { label:'Today', value:stats.today||0 },
+                  { label:'Pending', value:stats.pending||0 },
+                  { label:'Approved', value:stats.approved||0 },
+                ].map((s,i) => (
+                  <div key={i} style={{ background:'rgba(255,255,255,0.12)', borderRadius:10, padding:'10px 8px', textAlign:'center' }}>
+                    <div style={{ fontSize:20, fontWeight:800, color:'#fff' }}>{s.value}</div>
+                    <div style={{ fontSize:10, color:'rgba(255,255,255,0.55)', textTransform:'uppercase', letterSpacing:0.5 }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ padding:'12px 16px 0' }}>
+            <div style={{ display:'flex', gap:6, marginBottom:12, overflowX:'auto', scrollbarWidth:'none' }}>
+              {['all','Pending Review','Approved'].map(f => (
+                <button key={f} onClick={() => setFilter(f)} style={{
+                  padding:'6px 14px', borderRadius:20, border:'1.5px solid',
+                  borderColor: filter===f ? '#4f46e5' : '#e0e7ff',
+                  background: filter===f ? '#eef2ff' : '#fff',
+                  color: filter===f ? '#4f46e5' : '#888',
+                  fontSize:11, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0
+                }}>{f === 'all' ? 'All Scans' : f}</button>
+              ))}
+            </div>
+
+            {loading ? (
+              <div style={{ textAlign:'center', padding:'40px 20px' }}>
+                <div style={{ width:36, height:36, borderRadius:'50%', border:'3px solid #e0e7ff', borderTopColor:'#4f46e5', animation:'spin 0.8s linear infinite', margin:'0 auto 12px' }} />
+                <p style={{ color:'#aaa', fontSize:13 }}>Loading scans...</p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div style={{ background:'#fff', borderRadius:14, border:'0.5px solid #e0e7ff', padding:'40px 20px', textAlign:'center' }}>
+                <div style={{ fontSize:36, marginBottom:10 }}>📭</div>
+                <p style={{ color:'#aaa', fontSize:13 }}>No scans yet. Start searching products in the app!</p>
+              </div>
+            ) : (
+              <div style={{ background:'#fff', borderRadius:14, border:'0.5px solid #e0e7ff', overflow:'hidden' }}>
+                {filtered.map((scan, i) => (
+                  <div key={scan.id} style={{ padding:'12px 16px', borderBottom: i < filtered.length-1 ? '0.5px solid #f0f4ff' : 'none', display:'flex', alignItems:'center', gap:12 }}>
+                    <div style={{ width:38, height:38, borderRadius:10, background:'#eef2ff', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      <span style={{ fontSize:15, fontWeight:800, color:dotColor(scan.score) }}>{scan.score}</span>
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{scan.product_name}</div>
+                      <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:2, flexWrap:'wrap' }}>
+                        <span style={{ fontSize:10, color:'#aaa' }}>{scan.scanned_at?.slice(0,16).replace('T',' ')}</span>
+                        <span style={{ fontSize:10, color: scan.source?.includes('AI') ? '#7c3aed' : '#059669', fontWeight:600 }}>{scan.source?.includes('AI') ? '✦ AI' : '✓ DB'}</span>
+                        <span style={{ fontSize:10, padding:'1px 6px', borderRadius:8,
+                          background: scan.status==='Approved'?'#dcfce7':scan.status==='Rejected'?'#fee2e2':'#fef9c3',
+                          color: scan.status==='Approved'?'#15803d':scan.status==='Rejected'?'#b91c1c':'#854d0e',
+                          fontWeight:600 }}>{scan.status}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function ProfileScreen({ onAdmin }) {
       const menuSections = [
         {
           items: [
@@ -268,6 +362,7 @@ Return ONLY the JSON object, nothing else.`
         },
         {
           items: [
+            { icon:'ti-database', label:'Admin — View All Scans', admin:true },
             { icon:'ti-info-circle', label:'About StoneIQ' },
             { icon:'ti-book', label:'Kidney Stone Guide' },
             { icon:'ti-shield', label:'Privacy Policy' },
@@ -286,9 +381,9 @@ Return ONLY the JSON object, nothing else.`
             {menuSections.map((section, si) => (
               <div key={si} style={{ background:'#fff', borderRadius:14, overflow:'hidden', marginBottom:12, border:'0.5px solid #e0e7ff' }}>
                 {section.items.map((item, ii) => (
-                  <div key={ii} style={{ padding:'12px 16px', borderBottom: ii < section.items.length-1 ? '0.5px solid #f0f4ff' : 'none', display:'flex', alignItems:'center', gap:12, cursor:'pointer' }}>
-                    <i className={`ti ${item.icon}`} style={{ fontSize:16, color:'#4f46e5' }} />
-                    <span style={{ fontSize:13, color:'#1a1a1a', flex:1 }}>{item.label}</span>
+                  <div key={ii} onClick={() => item.admin && onAdmin && onAdmin()} style={{ padding:'12px 16px', borderBottom: ii < section.items.length-1 ? '0.5px solid #f0f4ff' : 'none', display:'flex', alignItems:'center', gap:12, cursor:'pointer', background: item.admin ? '#f5f3ff' : '#fff' }}>
+                    <i className={`ti ${item.icon}`} style={{ fontSize:16, color: item.admin ? '#7c3aed' : '#4f46e5' }} />
+                    <span style={{ fontSize:13, color: item.admin ? '#7c3aed' : '#1a1a1a', flex:1, fontWeight: item.admin ? 700 : 400 }}>{item.label}</span>
                     <i className="ti ti-chevron-right" style={{ fontSize:14, color:'#ccc' }} />
                   </div>
                 ))}
@@ -435,9 +530,34 @@ Return ONLY the JSON object, nothing else.`
         try { return JSON.parse(localStorage.getItem('stoneiq_history') || '[]'); } catch { return []; }
       });
       const [historyDetail, setHistoryDetail] = useState(null);
+      const [showAdmin, setShowAdmin] = useState(false);
       const fileRef = useRef();
 
       React.useEffect(() => { loadDB(); }, []);
+
+      async function saveScan(query, res) {
+        try {
+          await fetch('/api/save-scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              product_name: res.productName,
+              search_query: query,
+              score: res.overallScore,
+              score_label: res.scoreLabel,
+              oxalate_level: res.negatives?.[0]?.oxalateLevel || 'Low',
+              category: '',
+              safe: res.safe || (res.overallScore >= 75 ? 'Yes' : res.overallScore >= 45 ? 'Limit' : 'Avoid'),
+              calcium_oxalate_risk: res.stoneTypeRisks?.calciumOxalate?.risk || 'Low',
+              uric_acid_risk: res.stoneTypeRisks?.uricAcid?.risk || 'Low',
+              summary: res.summary,
+              negatives: res.negatives,
+              positives: res.positives,
+              source: res._fromDB ? (res._verified ? 'Database (Verified)' : 'Database (Estimated)') : 'AI Analysis',
+            })
+          });
+        } catch(e) { /* silent fail — don't disrupt UX */ }
+      }
 
       function saveHistory(res) {
         try {
@@ -469,6 +589,7 @@ Return ONLY the JSON object, nothing else.`
             const res = dbToResult(dbMatch);
             setResult(res);
             saveHistory(res);
+            saveScan(q, res);
             fetchProductImage(res.productName).then(img => setProductImage(img));
             setLoading(false);
             return;
@@ -477,6 +598,7 @@ Return ONLY the JSON object, nothing else.`
           const res = await callClaude([{ role:'user', content:'Analyze for kidney stone patients: ' + q }]);
           setResult(res);
           saveHistory(res);
+          saveScan(q, res);
           // Use image from Open Food Facts if server found one, otherwise search
           if (res._productImageUrl) {
             setProductImage(res._productImageUrl);
@@ -541,7 +663,8 @@ Return ONLY the JSON object, nothing else.`
           </div>
 
           {/* Profile tab */}
-          {tab === 'profile' && <ProfileScreen />}
+          {tab === 'profile' && !showAdmin && <ProfileScreen onAdmin={() => setShowAdmin(true)} />}
+          {tab === 'profile' && showAdmin && <AdminScreen onBack={() => setShowAdmin(false)} />}
 
           {/* Recipes tab */}
           {tab === 'recipes' && (
