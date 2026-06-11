@@ -262,6 +262,7 @@ Return ONLY the JSON object, nothing else.`
       const [stats, setStats] = React.useState(null);
       const [loading, setLoading] = React.useState(true);
       const [filter, setFilter] = React.useState('all');
+      const [detail, setDetail] = React.useState(null);
 
       React.useEffect(() => {
         fetch('/api/get-scans?limit=100')
@@ -276,6 +277,86 @@ Return ONLY the JSON object, nothing else.`
 
       const filtered = filter === 'all' ? scans : scans.filter(s => s.status === filter);
       const dotColor = (score) => score>=80?'#22c55e':score>=60?'#84cc16':score>=40?'#f97316':'#ef4444';
+      const riskColor = (r) => ({ Low:'#15803d', Medium:'#c2410c', High:'#b91c1c' })[r] || '#555';
+      const riskBg = (r) => ({ Low:'#dcfce7', Medium:'#ffedd5', High:'#fee2e2' })[r] || '#f5f5f5';
+
+      if (detail) {
+        const negatives = (() => { try { return JSON.parse(detail.negatives || '[]'); } catch { return []; } })();
+        const positives = (() => { try { return JSON.parse(detail.positives || '[]'); } catch { return []; } })();
+        return (
+          <div style={{ animation:'fadeIn 0.3s ease', paddingBottom:100 }}>
+            <div style={{ background:'#4f46e5', padding:'16px 18px 20px' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
+                <button onClick={() => setDetail(null)} style={{ background:'rgba(255,255,255,0.15)', border:'none', color:'#fff', padding:'6px 14px', borderRadius:20, fontSize:13, fontWeight:600, cursor:'pointer' }}>← Back</button>
+                <span style={{ fontSize:11, color:'rgba(255,255,255,0.5)' }}>{detail.scanned_at?.slice(0,16).replace('T',' ')}</span>
+              </div>
+              <div style={{ background:'rgba(255,255,255,0.12)', borderRadius:16, padding:16, display:'flex', alignItems:'center', gap:16 }}>
+                <div style={{ textAlign:'center', flexShrink:0 }}>
+                  <div style={{ display:'flex', alignItems:'baseline', gap:5 }}>
+                    <div style={{ width:12, height:12, borderRadius:'50%', background:dotColor(detail.score) }} />
+                    <span style={{ fontSize:36, fontWeight:700, color:'#fff', lineHeight:1 }}>{detail.score}</span>
+                  </div>
+                  <div style={{ fontSize:10, color:'rgba(255,255,255,0.5)', textTransform:'uppercase' }}>/100</div>
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:17, fontWeight:700, color:'#fff', marginBottom:4 }}>{detail.product_name}</div>
+                  <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                    <span style={{ padding:'2px 10px', borderRadius:20, background:'rgba(255,255,255,0.15)', color:'#fff', fontSize:11 }}>{detail.score_label}</span>
+                    <span style={{ padding:'2px 10px', borderRadius:20, background: detail.source?.includes('AI') ? 'rgba(124,58,237,0.3)' : 'rgba(5,150,105,0.3)', color:'#fff', fontSize:11 }}>{detail.source?.includes('AI') ? '✦ AI Analysis' : '✓ Database'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style={{ padding:'14px 16px' }}>
+              <div style={{ background:'#fff', borderRadius:14, padding:14, marginBottom:10, border:'0.5px solid #e0e7ff' }}>
+                <p style={{ fontSize:12, fontWeight:700, color:'#1a1a1a', marginBottom:10 }}>Scan Details</p>
+                {[
+                  ['Search Query', detail.search_query],
+                  ['Oxalate Level', detail.oxalate_level],
+                  ['Safe for Patients', detail.safe],
+                  ['Calcium Oxalate Risk', detail.calcium_oxalate_risk],
+                  ['Uric Acid Risk', detail.uric_acid_risk],
+                  ['Status', detail.status],
+                ].map(([label, val]) => val ? (
+                  <div key={label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:8, marginBottom:8, borderBottom:'0.5px solid #f5f5f7' }}>
+                    <span style={{ fontSize:12, color:'#888' }}>{label}</span>
+                    <span style={{ fontSize:12, fontWeight:600, color:'#1a1a1a' }}>{val}</span>
+                  </div>
+                ) : null)}
+                {detail.summary && <p style={{ fontSize:12, color:'#555', lineHeight:1.5, marginTop:4 }}>{detail.summary}</p>}
+              </div>
+              {negatives.length > 0 && (
+                <div style={{ background:'#fff', borderRadius:14, padding:14, marginBottom:10, border:'0.5px solid #e0e7ff' }}>
+                  <p style={{ fontSize:12, fontWeight:700, color:'#1a1a1a', marginBottom:10 }}>Negatives</p>
+                  {negatives.map((n,i) => (
+                    <div key={i} style={{ display:'flex', gap:10, alignItems:'flex-start', paddingBottom:8, marginBottom:8, borderBottom:'0.5px solid #f5f5f7' }}>
+                      <div style={{ width:26, height:26, borderRadius:7, background:'#fff1f2', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, flexShrink:0 }}>⚠️</div>
+                      <div>
+                        <div style={{ fontSize:12, fontWeight:600, color:'#1a1a1a' }}>{n.name}</div>
+                        <div style={{ fontSize:11, color:'#888' }}>{n.detail}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {positives.length > 0 && (
+                <div style={{ background:'#fff', borderRadius:14, padding:14, border:'0.5px solid #e0e7ff' }}>
+                  <p style={{ fontSize:12, fontWeight:700, color:'#1a1a1a', marginBottom:10 }}>Positives</p>
+                  {positives.map((p,i) => (
+                    <div key={i} style={{ display:'flex', gap:10, alignItems:'flex-start', paddingBottom:8, marginBottom:8, borderBottom:'0.5px solid #f5f5f7' }}>
+                      <div style={{ width:26, height:26, borderRadius:7, background:'#f0fdf4', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, flexShrink:0 }}>✨</div>
+                      <div>
+                        <div style={{ fontSize:12, fontWeight:600, color:'#1a1a1a' }}>{p.name}</div>
+                        <div style={{ fontSize:11, color:'#888' }}>{p.detail}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
 
       return (
         <div style={{ animation:'fadeIn 0.3s ease', paddingBottom:100 }}>
@@ -327,7 +408,10 @@ Return ONLY the JSON object, nothing else.`
             ) : (
               <div style={{ background:'#fff', borderRadius:14, border:'0.5px solid #e0e7ff', overflow:'hidden' }}>
                 {filtered.map((scan, i) => (
-                  <div key={scan.id} style={{ padding:'12px 16px', borderBottom: i < filtered.length-1 ? '0.5px solid #f0f4ff' : 'none', display:'flex', alignItems:'center', gap:12 }}>
+                  <div key={scan.id} onClick={() => setDetail(scan)}
+                    style={{ padding:'12px 16px', borderBottom: i < filtered.length-1 ? '0.5px solid #f0f4ff' : 'none', display:'flex', alignItems:'center', gap:12, cursor:'pointer' }}
+                    onMouseEnter={e => e.currentTarget.style.background='#f8f9ff'}
+                    onMouseLeave={e => e.currentTarget.style.background='#fff'}>
                     <div style={{ width:38, height:38, borderRadius:10, background:'#eef2ff', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                       <span style={{ fontSize:15, fontWeight:800, color:dotColor(scan.score) }}>{scan.score}</span>
                     </div>
@@ -342,6 +426,7 @@ Return ONLY the JSON object, nothing else.`
                           fontWeight:600 }}>{scan.status}</span>
                       </div>
                     </div>
+                    <i className="ti ti-chevron-right" style={{ fontSize:14, color:'#ccc', flexShrink:0 }} />
                   </div>
                 ))}
               </div>
