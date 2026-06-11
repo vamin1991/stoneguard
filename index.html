@@ -736,7 +736,7 @@ Return ONLY the JSON object, nothing else.`
                 </div>
               </div>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                {result && <button onClick={reset} style={{ fontSize:13, color:'rgba(255,255,255,0.8)', background:'rgba(255,255,255,0.15)', border:'none', cursor:'pointer', fontWeight:600, padding:'6px 14px', borderRadius:20 }}>← Back</button>}
+
                 <button onClick={() => setTab('profile')} style={{ width:34, height:34, borderRadius:'50%', background:'#fff', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="12" cy="8" r="4" fill="#4f46e5"/>
@@ -852,7 +852,7 @@ Return ONLY the JSON object, nothing else.`
           )}
 
           {/* Results */}
-          {result && !loading && (
+          {result && !loading && tab !== 'history' && tab !== 'profile' && (
             <div style={{ animation:'fadeIn 0.4s ease', paddingBottom:100 }}>
 
               <div style={{ background:'#4f46e5', padding:'0 16px 20px' }}>
