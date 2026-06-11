@@ -11,6 +11,7 @@ CRITICAL RULES:
 - Suggest REAL US branded products only. Include store and Amazon URL.
 Return ONLY the JSON object, nothing else.`;
 
+// ── Open Food Facts lookup ────────────────────────────────────────────────────
 async function searchOpenFoodFacts(query) {
   try {
     const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=5&fields=product_name,brands,serving_size,nutriments,image_front_url,categories_tags,ingredients_text`;
@@ -20,6 +21,7 @@ async function searchOpenFoodFacts(query) {
     if (!res.ok) return null;
     const data = await res.json();
     const products = data.products || [];
+    // Find best match — prefer products with full nutrition data
     const match = products.find(p =>
       p.product_name &&
       p.nutriments &&
@@ -31,6 +33,7 @@ async function searchOpenFoodFacts(query) {
   }
 }
 
+// ── Build enriched prompt from OFF product data ───────────────────────────────
 function buildEnrichedPrompt(query, offProduct) {
   if (!offProduct) return `Analyze for kidney stone patients: ${query}`;
 
@@ -57,6 +60,7 @@ Ingredients: ${ingredients.slice(0, 500)}
 Use the real nutrition data above to calculate accurate scores and risks.`;
 }
 
+// ── Main handler ──────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -72,6 +76,7 @@ export default async function handler(req, res) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const messages = body.messages || [];
 
+    // Extract the user's search query (text searches only)
     let offProduct = null;
     let offImageUrl = null;
     const firstMsg = messages[0];
@@ -81,12 +86,15 @@ export default async function handler(req, res) {
       const query = firstMsg.content.replace('Analyze for kidney stone patients: ', '').trim();
       offProduct = await searchOpenFoodFacts(query);
       if (offProduct?.image_front_url) offImageUrl = offProduct.image_front_url;
+
+      // Replace messages with enriched prompt
       messages[0] = {
         role: 'user',
         content: buildEnrichedPrompt(query, offProduct)
       };
     }
 
+    // Call Anthropic
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -106,6 +114,7 @@ export default async function handler(req, res) {
     try {
       const data = JSON.parse(text);
 
+      // Inject OFF product image into response if found
       if (offImageUrl && data.content) {
         const jsonMatch = data.content
           .map(b => b.type === 'text' ? b.text : '')
@@ -116,6 +125,7 @@ export default async function handler(req, res) {
             const parsed = JSON.parse(jsonMatch[0]);
             parsed._productImageUrl = offImageUrl;
             parsed._source = 'Open Food Facts';
+            // Rebuild content with injected image
             data.content = [{ type: 'text', text: JSON.stringify(parsed) }];
           } catch(e) {}
         }
