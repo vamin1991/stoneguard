@@ -240,7 +240,7 @@ Return ONLY the JSON object, nothing else.`
       return (
         <div style={{ position:'fixed', bottom:0, left:0, right:0, background:'#fff', borderTop:'0.5px solid #e0e7ff', padding:'10px 0 20px', display:'flex', alignItems:'flex-start', justifyContent:'space-around', zIndex:200 }}>
           {tabs.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, flex:1, background:'none', border:'none', cursor:'pointer', marginTop: t.center ? -20 : 0 }}>
+            <button key={t.id} onClick={() => { setTab(t.id); if (t.id !== 'search' && t.id !== 'upload') { reset(); } else { setResult(null); setError(null); } }} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, flex:1, background:'none', border:'none', cursor:'pointer', marginTop: t.center ? -20 : 0 }}>
               {t.center ? (
                 <div style={{ width:52, height:52, borderRadius:'50%', background:'#4f46e5', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(79,70,229,0.4)' }}>
                   <i className={`ti ${t.icon}`} style={{ fontSize:22, color:'#fff' }} />
@@ -302,14 +302,120 @@ Return ONLY the JSON object, nothing else.`
       );
     }
 
-    function HistoryScreen() {
-      return (
-        <div style={{ animation:'fadeIn 0.3s ease', padding:'24px 16px', paddingBottom:100 }}>
-          <h2 style={{ fontSize:18, fontWeight:700, color:'#1a1a1a', marginBottom:16 }}>Recent Searches</h2>
-          <div style={{ background:'#fff', borderRadius:14, border:'0.5px solid #e0e7ff', padding:'48px 20px', textAlign:'center' }}>
-            <div style={{ fontSize:40, marginBottom:12 }}>🕐</div>
-            <p style={{ color:'#aaa', fontSize:13, lineHeight:1.7 }}>Your search history will appear here.<br />Start by searching a food or ingredient.</p>
+    function HistoryScreen({ searchHistory, onSelect }) {
+      const [detail, setDetail] = React.useState(null);
+
+      if (detail) {
+        const r = detail.result;
+        const dotColor = r.overallScore>=80?'#22c55e':r.overallScore>=60?'#84cc16':r.overallScore>=40?'#f97316':'#ef4444';
+        const scoreBadgeBg = r.overallScore>=80?'rgba(34,197,94,0.25)':r.overallScore>=60?'rgba(132,204,22,0.25)':r.overallScore>=40?'rgba(249,115,22,0.25)':'rgba(239,68,68,0.25)';
+        const scoreBadgeColor = r.overallScore>=80?'#bbf7d0':r.overallScore>=60?'#d9f99d':r.overallScore>=40?'#fed7aa':'#fecaca';
+        return (
+          <div style={{ animation:'fadeIn 0.3s ease', paddingBottom:100 }}>
+            <div style={{ background:'#4f46e5', padding:'0 16px 20px' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, paddingTop:12, marginBottom:12 }}>
+                <button onClick={() => setDetail(null)} style={{ background:'rgba(255,255,255,0.15)', border:'none', color:'#fff', padding:'6px 14px', borderRadius:20, fontSize:13, fontWeight:600, cursor:'pointer' }}>← Back</button>
+                <span style={{ fontSize:12, color:'rgba(255,255,255,0.5)' }}>{detail.date}</span>
+              </div>
+              <div style={{ background:'rgba(255,255,255,0.12)', borderRadius:16, padding:16, display:'flex', alignItems:'center', gap:16 }}>
+                <div style={{ textAlign:'center', flexShrink:0 }}>
+                  <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
+                    <div style={{ width:12, height:12, borderRadius:'50%', background:dotColor }} />
+                    <span style={{ fontSize:36, fontWeight:700, color:'#fff', lineHeight:1 }}>{r.overallScore}</span>
+                  </div>
+                  <div style={{ fontSize:10, color:'rgba(255,255,255,0.5)', textTransform:'uppercase' }}>/100</div>
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:17, fontWeight:700, color:'#fff', marginBottom:6 }}>{r.productName}</div>
+                  <span style={{ padding:'3px 10px', borderRadius:20, background:scoreBadgeBg, color:scoreBadgeColor, fontSize:11, fontWeight:500 }}>{r.scoreLabel}</span>
+                </div>
+              </div>
+            </div>
+            <div style={{ padding:'16px' }}>
+              {(r.negatives||[]).length > 0 && (
+                <div style={{ background:'#fff', borderRadius:14, padding:14, marginBottom:10, border:'0.5px solid #e0e7ff' }}>
+                  <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', marginBottom:12 }}>Negatives</p>
+                  {r.negatives.map((item,i) => (
+                    <div key={i} style={{ display:'flex', gap:10, alignItems:'flex-start', paddingBottom:10, marginBottom:10, borderBottom:'0.5px solid #f5f5f7' }}>
+                      <div style={{ width:28, height:28, borderRadius:8, background:'#fff1f2', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, flexShrink:0 }}>⚠️</div>
+                      <div>
+                        <div style={{ fontSize:13, fontWeight:600, color:'#1a1a1a' }}>{item.name}</div>
+                        <div style={{ fontSize:11, color:'#888' }}>{item.detail}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {(r.positives||[]).length > 0 && (
+                <div style={{ background:'#fff', borderRadius:14, padding:14, marginBottom:10, border:'0.5px solid #e0e7ff' }}>
+                  <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', marginBottom:12 }}>Positives</p>
+                  {r.positives.map((item,i) => (
+                    <div key={i} style={{ display:'flex', gap:10, alignItems:'center', paddingBottom:10, marginBottom:10, borderBottom:'0.5px solid #f5f5f7' }}>
+                      <div style={{ width:28, height:28, borderRadius:8, background:'#f0fdf4', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, flexShrink:0 }}>✨</div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:13, fontWeight:600, color:'#1a1a1a' }}>{item.name}</div>
+                        <div style={{ fontSize:11, color:'#888' }}>{item.detail}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ background:'#fff', borderRadius:14, padding:14, border:'0.5px solid #e0e7ff' }}>
+                <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', marginBottom:12 }}>Risk by Stone Type</p>
+                {Object.entries(r.stoneTypeRisks||{}).map(([type,data]) => {
+                  const rc = { Low:'#15803d', Medium:'#c2410c', High:'#b91c1c' };
+                  const rb = { Low:'#dcfce7', Medium:'#ffedd5', High:'#fee2e2' };
+                  return (
+                    <div key={type} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:8, marginBottom:8, borderBottom:'0.5px solid #f5f5f7' }}>
+                      <span style={{ fontSize:12, fontWeight:600, color:'#1a1a1a' }}>{type==='calciumOxalate'?'Calcium Oxalate':type==='uricAcid'?'Uric Acid':type==='struvite'?'Struvite':'Cystine'}</span>
+                      <span style={{ padding:'2px 10px', borderRadius:20, fontSize:11, fontWeight:500, color:rc[data.risk]||'#555', background:rb[data.risk]||'#f5f5f5' }}>{data.risk}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
+        );
+      }
+
+      return (
+        <div style={{ animation:'fadeIn 0.3s ease', padding:'20px 16px', paddingBottom:100 }}>
+          <h2 style={{ fontSize:18, fontWeight:700, color:'#1a1a1a', marginBottom:4 }}>Recent Searches</h2>
+          <p style={{ fontSize:12, color:'#aaa', marginBottom:16 }}>Tap any item to see full details</p>
+          {searchHistory.length === 0 ? (
+            <div style={{ background:'#fff', borderRadius:14, border:'0.5px solid #e0e7ff', padding:'48px 20px', textAlign:'center' }}>
+              <div style={{ fontSize:40, marginBottom:12 }}>🕐</div>
+              <p style={{ color:'#aaa', fontSize:13, lineHeight:1.7 }}>Your search history will appear here.<br />Start by searching a food or ingredient.</p>
+            </div>
+          ) : (
+            <div style={{ background:'#fff', borderRadius:14, border:'0.5px solid #e0e7ff', overflow:'hidden' }}>
+              {searchHistory.map((entry, i) => {
+                const dotColor = entry.score>=80?'#22c55e':entry.score>=60?'#84cc16':entry.score>=40?'#f97316':'#ef4444';
+                const safeBg = entry.safe==='Yes'?'#dcfce7':entry.safe==='Limit'?'#ffedd5':'#fee2e2';
+                const safeColor = entry.safe==='Yes'?'#15803d':entry.safe==='Limit'?'#c2410c':'#b91c1c';
+                return (
+                  <div key={entry.id} onClick={() => setDetail(entry)}
+                    style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px',
+                      borderBottom: i < searchHistory.length-1 ? '0.5px solid #f0f4ff' : 'none',
+                      cursor:'pointer', background:'#fff' }}
+                    onMouseEnter={e => e.currentTarget.style.background='#f8f9ff'}
+                    onMouseLeave={e => e.currentTarget.style.background='#fff'}>
+                    <div style={{ width:40, height:40, borderRadius:10, background:'#eef2ff', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      <span style={{ fontSize:18, fontWeight:800, color:dotColor }}>{entry.score}</span>
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{entry.name}</div>
+                      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                        <span style={{ fontSize:10, color:'#aaa' }}>{entry.date}</span>
+                        <span style={{ padding:'1px 7px', borderRadius:10, fontSize:10, fontWeight:600, background:safeBg, color:safeColor }}>{entry.safe || entry.scoreLabel}</span>
+                      </div>
+                    </div>
+                    <i className="ti ti-chevron-right" style={{ fontSize:14, color:'#ccc', flexShrink:0 }} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       );
     }
@@ -325,9 +431,33 @@ Return ONLY the JSON object, nothing else.`
       const [imageMime, setImageMime] = useState('image/jpeg');
       const [expandedStones, setExpandedStones] = useState(false);
       const [productImage, setProductImage] = useState(null);
+      const [searchHistory, setSearchHistory] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('stoneiq_history') || '[]'); } catch { return []; }
+      });
+      const [historyDetail, setHistoryDetail] = useState(null);
       const fileRef = useRef();
 
       React.useEffect(() => { loadDB(); }, []);
+
+      function saveHistory(res) {
+        try {
+          const entry = {
+            id: Date.now(),
+            name: res.productName,
+            score: res.overallScore,
+            scoreLabel: res.scoreLabel,
+            safe: res.safe || (res.negatives?.length > 0 ? 'Limit' : 'Yes'),
+            oxalate_level: res.negatives?.[0]?.oxalateLevel || 'Low',
+            date: new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }),
+            result: res,
+          };
+          setSearchHistory(prev => {
+            const updated = [entry, ...prev.filter(h => h.name !== res.productName)].slice(0, 50);
+            localStorage.setItem('stoneiq_history', JSON.stringify(updated));
+            return updated;
+          });
+        } catch(e) {}
+      }
 
       async function analyzeText(q) {
         setLoading(true); setError(null); setResult(null); setProductImage(null);
@@ -338,6 +468,7 @@ Return ONLY the JSON object, nothing else.`
           if (dbMatch) {
             const res = dbToResult(dbMatch);
             setResult(res);
+            saveHistory(res);
             fetchProductImage(res.productName).then(img => setProductImage(img));
             setLoading(false);
             return;
@@ -345,6 +476,7 @@ Return ONLY the JSON object, nothing else.`
           // Not in database — fall back to AI
           const res = await callClaude([{ role:'user', content:'Analyze for kidney stone patients: ' + q }]);
           setResult(res);
+          saveHistory(res);
           // Use image from Open Food Facts if server found one, otherwise search
           if (res._productImageUrl) {
             setProductImage(res._productImageUrl);
@@ -428,7 +560,7 @@ Return ONLY the JSON object, nothing else.`
           )}
 
           {/* History tab */}
-          {tab === 'history' && <HistoryScreen />}
+          {tab === 'history' && <HistoryScreen searchHistory={searchHistory} />}
 
           {/* Barcode tab */}
           {tab === 'barcode' && !result && (
