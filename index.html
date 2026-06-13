@@ -102,64 +102,57 @@ Return ONLY the JSON object, nothing else.`
       const sodium = p.sodium_mg || 0;
       const score = p.score || 70;
 
-      // ── SAFER SWAPS by category ──────────────────────────────────────────
+      // ── SAFER SWAPS by category (icon = fallback Tabler icon if no photo found) ──
       if (cat.includes('yogurt') || name.includes('yogurt') || name.includes('chobani') || name.includes('fage')) {
-        alts.push({ name:"Siggi's Plain Whole Milk Yogurt", reason:"Lower sugar, zero oxalate.", store:"Whole Foods / Target", amazonUrl:"https://www.amazon.com/s?k=siggi%27s+plain+yogurt", imageUrl:"" });
-        alts.push({ name:"Stonyfield Organic Plain Greek Yogurt", reason:"Zero oxalate, high calcium.", store:"Whole Foods", amazonUrl:"https://www.amazon.com/s?k=stonyfield+organic+plain+greek+yogurt", imageUrl:"" });
+        alts.push({ name:"Siggi's Plain Whole Milk Yogurt", reason:"Lower sugar, zero oxalate.", store:"Whole Foods / Target", amazonUrl:"https://www.amazon.com/s?k=siggi%27s+plain+yogurt", icon:"ti-bowl" });
+        alts.push({ name:"Stonyfield Organic Plain Greek Yogurt", reason:"Zero oxalate, high calcium.", store:"Whole Foods", amazonUrl:"https://www.amazon.com/s?k=stonyfield+organic+plain+greek+yogurt", icon:"ti-bowl" });
       } else if (cat.includes('protein powder') || name.includes('whey') || name.includes('protein powder')) {
-        alts.push({ name:"Truvani Plant-Based Protein", reason:"Low oxalate pea protein. Stone safe.", store:"Whole Foods / Amazon", amazonUrl:"https://www.amazon.com/s?k=truvani+plant+protein", imageUrl:"" });
-        alts.push({ name:"Orgain Organic Plant Protein", reason:"Low oxalate, no animal protein.", store:"Target / Costco", amazonUrl:"https://www.amazon.com/s?k=orgain+organic+plant+protein", imageUrl:"" });
+        alts.push({ name:"Truvani Plant-Based Protein", reason:"Low oxalate pea protein. Stone safe.", store:"Whole Foods / Amazon", amazonUrl:"https://www.amazon.com/s?k=truvani+plant+protein", icon:"ti-flask" });
+        alts.push({ name:"Orgain Organic Plant Protein", reason:"Low oxalate, no animal protein.", store:"Target / Costco", amazonUrl:"https://www.amazon.com/s?k=orgain+organic+plant+protein", icon:"ti-flask" });
       } else if (cat.includes('cereal') || name.includes('cereal') || name.includes('granola')) {
-        alts.push({ name:"Quaker Old Fashioned Oats", reason:"Zero oxalate. Best breakfast grain.", store:"Any grocery store", amazonUrl:"https://www.amazon.com/s?k=quaker+old+fashioned+oats", imageUrl:"" });
-        alts.push({ name:"Cream of Wheat", reason:"Zero oxalate. Calcium-fortified.", store:"Walmart / Target", amazonUrl:"https://www.amazon.com/s?k=cream+of+wheat", imageUrl:"" });
+        alts.push({ name:"Quaker Old Fashioned Oats", reason:"Zero oxalate. Best breakfast grain.", store:"Any grocery store", amazonUrl:"https://www.amazon.com/s?k=quaker+old+fashioned+oats", icon:"ti-bowl-spoon" });
+        alts.push({ name:"Cream of Wheat", reason:"Zero oxalate. Calcium-fortified.", store:"Walmart / Target", amazonUrl:"https://www.amazon.com/s?k=cream+of+wheat", icon:"ti-bowl-spoon" });
       } else if (cat.includes('snack bar') || cat.includes('bar') || name.includes('kind bar') || name.includes('clif')) {
-        alts.push({ name:"Quest Bar (Chocolate Chip)", reason:"Low oxalate, high protein bar.", store:"Target / Amazon", amazonUrl:"https://www.amazon.com/s?k=quest+bar+chocolate+chip", imageUrl:"" });
-        alts.push({ name:"Built Bar", reason:"Very low oxalate. Lower sodium.", store:"Amazon", amazonUrl:"https://www.amazon.com/s?k=built+bar+protein", imageUrl:"" });
+        alts.push({ name:"Quest Bar (Chocolate Chip)", reason:"Low oxalate, high protein bar.", store:"Target / Amazon", amazonUrl:"https://www.amazon.com/s?k=quest+bar+chocolate+chip", icon:"ti-baguette" });
+        alts.push({ name:"Built Bar", reason:"Very low oxalate. Lower sodium.", store:"Amazon", amazonUrl:"https://www.amazon.com/s?k=built+bar+protein", icon:"ti-baguette" });
       } else if (cat.includes('milk') || name.includes('almond milk') || name.includes('oat milk')) {
-        alts.push({ name:"Fairlife 2% Ultra-Filtered Milk", reason:"Zero oxalate, 2x calcium + protein.", store:"Walmart / Target", amazonUrl:"https://www.amazon.com/s?k=fairlife+2+percent+milk", imageUrl:"" });
-        alts.push({ name:"Oat Milk (Oatly)", reason:"Low oxalate milk alternative.", store:"Whole Foods / Target", amazonUrl:"https://www.amazon.com/s?k=oatly+oat+milk", imageUrl:"" });
+        alts.push({ name:"Fairlife 2% Ultra-Filtered Milk", reason:"Zero oxalate, 2x calcium + protein.", store:"Walmart / Target", amazonUrl:"https://www.amazon.com/s?k=fairlife+2+percent+milk", icon:"ti-bottle" });
+        alts.push({ name:"Oat Milk (Oatly)", reason:"Low oxalate milk alternative.", store:"Whole Foods / Target", amazonUrl:"https://www.amazon.com/s?k=oatly+oat+milk", icon:"ti-bottle" });
       } else if (cat.includes('frozen meal') || cat.includes('fast food')) {
-        alts.push({ name:"Grilled Chicken + White Rice", reason:"Zero oxalate meal. Easy to make.", store:"Any grocery store", amazonUrl:"https://www.amazon.com/s?k=frozen+grilled+chicken", imageUrl:"" });
+        alts.push({ name:"Grilled Chicken + White Rice", reason:"Zero oxalate meal. Easy to make.", store:"Any grocery store", amazonUrl:"https://www.amazon.com/s?k=frozen+grilled+chicken", icon:"ti-meat" });
       } else if (name.includes('spinach') || name.includes('beet') || name.includes('swiss chard') || name.includes('rhubarb')) {
-        alts.push({ name:"Organic Arugula", reason:"Near-zero oxalate leafy green.", store:"Whole Foods / Trader Joe's", amazonUrl:"https://www.amazon.com/s?k=organic+arugula", imageUrl:"" });
-        alts.push({ name:"Kale (organic)", reason:"Low oxalate spinach alternative.", store:"Any grocery store", amazonUrl:"https://www.amazon.com/s?k=organic+kale", imageUrl:"" });
+        alts.push({ name:"Organic Arugula", reason:"Near-zero oxalate leafy green.", store:"Whole Foods / Trader Joe's", amazonUrl:"https://www.amazon.com/s?k=organic+arugula", icon:"ti-leaf" });
+        alts.push({ name:"Kale (organic)", reason:"Low oxalate spinach alternative.", store:"Any grocery store", amazonUrl:"https://www.amazon.com/s?k=organic+kale", icon:"ti-leaf" });
       } else if (name.includes('almond') || name.includes('cashew') || name.includes('peanut')) {
-        alts.push({ name:"Macadamia Nuts", reason:"Low oxalate nut. Safe in portions.", store:"Whole Foods / Trader Joe's", amazonUrl:"https://www.amazon.com/s?k=macadamia+nuts+raw", imageUrl:"" });
-        alts.push({ name:"Pecans", reason:"Low oxalate nut alternative.", store:"Any grocery store", amazonUrl:"https://www.amazon.com/s?k=raw+pecans", imageUrl:"" });
+        alts.push({ name:"Macadamia Nuts", reason:"Low oxalate nut. Safe in portions.", store:"Whole Foods / Trader Joe's", amazonUrl:"https://www.amazon.com/s?k=macadamia+nuts+raw", icon:"ti-nut" });
+        alts.push({ name:"Pecans", reason:"Low oxalate nut alternative.", store:"Any grocery store", amazonUrl:"https://www.amazon.com/s?k=raw+pecans", icon:"ti-nut" });
       } else if (name.includes('chocolate') || name.includes('cocoa')) {
-        alts.push({ name:"Carob Chips", reason:"Zero oxalate chocolate alternative.", store:"Whole Foods / Amazon", amazonUrl:"https://www.amazon.com/s?k=carob+chips", imageUrl:"" });
+        alts.push({ name:"Carob Chips", reason:"Zero oxalate chocolate alternative.", store:"Whole Foods / Amazon", amazonUrl:"https://www.amazon.com/s?k=carob+chips", icon:"ti-candy" });
       }
 
-      // ── ADD TO YOUR ROUTINE — always show these ──────────────────────────
-      // Always recommend hydration
-      recs.push({ text:"Drink 3L of water daily. Most important habit.", product:"Hydracy Large 1L Water Bottle", store:"Amazon / Target", amazonUrl:"https://www.amazon.com/s?k=large+water+bottle+1+liter", imageUrl:"" });
+      // ── ADD TO YOUR ROUTINE — always show these (icon = Tabler icon, no photo lookup) ──
+      recs.push({ text:"Drink 3L of water daily. Most important habit.", product:"Large 1L Water Bottle", store:"Amazon / Target", amazonUrl:"https://www.amazon.com/s?k=large+water+bottle+1+liter", icon:"ti-bottle", noImageLookup:true });
 
-      // High oxalate → recommend Chanca Piedra
       if (['Very High','High','Medium'].includes(ox)) {
-        recs.push({ text:"Reduces oxalate absorption in gut.", product:"Stone Breaker Chanca Piedra", store:"Amazon / Whole Foods", amazonUrl:"https://www.amazon.com/s?k=chanca+piedra+stone+breaker+supplement", imageUrl:"" });
+        recs.push({ text:"Reduces oxalate absorption in gut.", product:"Stone Breaker Chanca Piedra", store:"Amazon / Whole Foods", amazonUrl:"https://www.amazon.com/s?k=chanca+piedra+stone+breaker+supplement", icon:"ti-pill", noImageLookup:true });
       }
 
-      // Any stone risk → recommend lemon water
-      recs.push({ text:"Lemon citrate actively prevents stone formation.", product:"True Lemon Crystallized Lemon Packets", store:"Walmart / Amazon", amazonUrl:"https://www.amazon.com/s?k=true+lemon+packets", imageUrl:"" });
+      recs.push({ text:"Lemon citrate actively prevents stone formation.", product:"True Lemon Crystallized Lemon Packets", store:"Walmart / Amazon", amazonUrl:"https://www.amazon.com/s?k=true+lemon+packets", icon:"ti-lemon2", noImageLookup:true });
 
-      // High sodium → recommend low sodium alternatives
       if (sodium > 400) {
-        recs.push({ text:"High sodium raises urine calcium. Reduce salt.", product:"NoSalt Potassium Chloride Salt Alternative", store:"Walmart / Amazon", amazonUrl:"https://www.amazon.com/s?k=nosalt+potassium+chloride", imageUrl:"" });
+        recs.push({ text:"High sodium raises urine calcium. Reduce salt.", product:"NoSalt Potassium Chloride Salt Alternative", store:"Walmart / Amazon", amazonUrl:"https://www.amazon.com/s?k=nosalt+potassium+chloride", icon:"ti-salt", noImageLookup:true });
       }
 
-      // Low score → recommend magnesium citrate
       if (score < 60) {
-        recs.push({ text:"Magnesium binds oxalate in GI tract.", product:"NOW Foods Magnesium Citrate", store:"Whole Foods / Amazon", amazonUrl:"https://www.amazon.com/s?k=now+foods+magnesium+citrate", imageUrl:"" });
+        recs.push({ text:"Magnesium binds oxalate in GI tract.", product:"NOW Foods Magnesium Citrate", store:"Whole Foods / Amazon", amazonUrl:"https://www.amazon.com/s?k=now+foods+magnesium+citrate", icon:"ti-pill", noImageLookup:true });
       }
 
-      // High oxalate → recommend calcium with meals
       if (['Very High','High'].includes(ox)) {
-        recs.push({ text:"Calcium eaten with food binds oxalate.", product:"Citracal Slow Release Calcium + D3", store:"Walgreens / CVS / Amazon", amazonUrl:"https://www.amazon.com/s?k=citracal+calcium+slow+release", imageUrl:"" });
+        recs.push({ text:"Calcium eaten with food binds oxalate.", product:"Citracal Slow Release Calcium + D3", store:"Walgreens / CVS / Amazon", amazonUrl:"https://www.amazon.com/s?k=citracal+calcium+slow+release", icon:"ti-pill", noImageLookup:true });
       }
 
       return { recommendations: recs.slice(0,3), safeAlternatives: alts.slice(0,3) };
     }
-
     function dbToResult(p) {
       const riskLabel = (r) => r || 'Low';
       return {
@@ -221,6 +214,18 @@ Return ONLY the JSON object, nothing else.`
       } catch(e) {
         return null;
       }
+    }
+
+    async function fetchCardImages(items, key, setter) {
+      const lookupItems = items.filter(it => !(typeof it === 'object' && it.noImageLookup));
+      const names = lookupItems.map(it => typeof it === 'string' ? it : (it.product || it.name)).filter(Boolean);
+      const results = {};
+      await Promise.all(names.map(async (name) => {
+        if (!name) return;
+        const img = await fetchProductImage(name);
+        if (img) results[name] = img;
+      }));
+      setter(results);
     }
 
     function RiskPill({ risk }) {
@@ -616,6 +621,8 @@ Return ONLY the JSON object, nothing else.`
       });
       const [historyDetail, setHistoryDetail] = useState(null);
       const [showAdmin, setShowAdmin] = useState(false);
+      const [altImages, setAltImages] = useState({});
+      const [recImages, setRecImages] = useState({});
       const fileRef = useRef();
 
       React.useEffect(() => { loadDB(); }, []);
@@ -676,6 +683,9 @@ Return ONLY the JSON object, nothing else.`
             saveHistory(res);
             saveScan(q, res);
             fetchProductImage(res.productName).then(img => setProductImage(img));
+            setAltImages({}); setRecImages({});
+            if (res.safeAlternatives?.length) fetchCardImages(res.safeAlternatives, 'name', setAltImages);
+            if (res.recommendations?.length) fetchCardImages(res.recommendations, 'product', setRecImages);
             setLoading(false);
             return;
           }
@@ -684,6 +694,9 @@ Return ONLY the JSON object, nothing else.`
           setResult(res);
           saveHistory(res);
           saveScan(q, res);
+          setAltImages({}); setRecImages({});
+          if (res.safeAlternatives?.length) fetchCardImages(res.safeAlternatives, 'name', setAltImages);
+          if (res.recommendations?.length) fetchCardImages(res.recommendations, 'product', setRecImages);
           // Use image from Open Food Facts if server found one, otherwise search
           if (res._productImageUrl) {
             setProductImage(res._productImageUrl);
@@ -963,28 +976,30 @@ Return ONLY the JSON object, nothing else.`
                       <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', marginBottom:2 }}>Safer Swaps</p>
                       <p style={{ fontSize:11, color:'#888' }}>Direct replacements for this product</p>
                     </div>
-                    <div style={{ display:'flex', gap:12, overflowX:'auto', paddingBottom:8, scrollSnapType:'x mandatory' }}>
+                    <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                       {result.safeAlternatives.map((a,i) => (
-                        <div key={i} style={{ minWidth:'calc(100vw - 48px)', maxWidth:'calc(100vw - 48px)', background:'#fff', borderRadius:14, overflow:'hidden', border:'0.5px solid #e0e7ff', flexShrink:0, scrollSnapAlign:'start' }}>
-                          <div style={{ width:'100%', height:140, background:'#f0fdf4', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
-                            {a.imageUrl ? (
-                              <img src={a.imageUrl} alt={a.name||'product'}
+                        <div key={i} style={{ background:'#fff', borderRadius:14, border:'0.5px solid #e0e7ff', display:'flex', gap:12, padding:12, alignItems:'center' }}>
+                          <div style={{ width:64, height:64, borderRadius:10, background:'#f0fdf4', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
+                            {(altImages[a.name] || a.imageUrl) ? (
+                              <img src={altImages[a.name] || a.imageUrl} alt={a.name||'product'}
                                 style={{ width:'100%', height:'100%', objectFit:'cover' }}
-                                onError={e => { e.target.style.display='none'; e.target.parentElement.innerHTML='<div style="font-size:40px">✅</div>'; }} />
+                                onError={e => { e.target.style.display='none'; e.target.parentElement.innerHTML=`<i class="ti ${a.icon || 'ti-check'}" style="font-size:26px;color:#16a34a"></i>`; }} />
                             ) : (
-                              <div style={{ fontSize:40 }}>✅</div>
-                          )}
-                          </div>
-                          <div style={{ padding:14 }}>
-                            <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', marginBottom:3 }}>{typeof a==='string'?a:a.name}</p>
-                            {a.reason && <p style={{ fontSize:11, color:'#888', marginBottom:6, lineHeight:1.4 }}>{a.reason}</p>}
-                            {a.store && <p style={{ fontSize:10, color:'#aaa', marginBottom:10 }}>📍 {a.store}</p>}
-                            {a.amazonUrl && (
-                              <a href={a.amazonUrl} target="_blank" rel="noopener noreferrer"
-                                style={{ display:'block', padding:'7px 12px', borderRadius:8, background:'#eef2ff', border:'0.5px solid #c7d2fe', color:'#4f46e5', fontSize:11, fontWeight:600, textAlign:'center' }}>
-                                View on Amazon →
-                              </a>
+                              <i className={`ti ${a.icon || 'ti-check'}`} style={{ fontSize:26, color:'#16a34a' }} />
                             )}
+                          </div>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', marginBottom:2, lineHeight:1.3 }}>{typeof a==='string'?a:a.name}</p>
+                            {a.reason && <p style={{ fontSize:11, color:'#888', marginBottom:4, lineHeight:1.3 }}>{a.reason}</p>}
+                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                              {a.store && <p style={{ fontSize:10, color:'#aaa', margin:0 }}>📍 {a.store}</p>}
+                              {a.amazonUrl && (
+                                <a href={a.amazonUrl} target="_blank" rel="noopener noreferrer"
+                                  style={{ flexShrink:0, padding:'4px 10px', borderRadius:8, background:'#eef2ff', border:'0.5px solid #c7d2fe', color:'#4f46e5', fontSize:10, fontWeight:600, whiteSpace:'nowrap' }}>
+                                  Amazon →
+                                </a>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -998,28 +1013,30 @@ Return ONLY the JSON object, nothing else.`
                       <p style={{ fontSize:13, fontWeight:700, color:'#1a1a1a', marginBottom:2 }}>Add to Your Routine</p>
                       <p style={{ fontSize:11, color:'#888' }}>Kidney-stone-friendly products to add daily</p>
                     </div>
-                    <div style={{ display:'flex', gap:12, overflowX:'auto', paddingBottom:8, scrollSnapType:'x mandatory' }}>
+                    <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                       {result.recommendations.map((r,i) => (
-                        <div key={i} style={{ minWidth:'calc(100vw - 48px)', maxWidth:'calc(100vw - 48px)', background:'#4f46e5', borderRadius:14, overflow:'hidden', flexShrink:0, scrollSnapAlign:'start' }}>
-                          <div style={{ width:'100%', height:140, background:'#fff', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
-                            {r.imageUrl ? (
-                              <img src={r.imageUrl} alt={r.product||'product'}
+                        <div key={i} style={{ background:'#4f46e5', borderRadius:14, display:'flex', gap:12, padding:12, alignItems:'center' }}>
+                          <div style={{ width:64, height:64, borderRadius:10, background:'#fff', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
+                            {(recImages[r.product] || r.imageUrl) ? (
+                              <img src={recImages[r.product] || r.imageUrl} alt={r.product||'product'}
                                 style={{ width:'100%', height:'100%', objectFit:'cover' }}
-                                onError={e => { e.target.style.display='none'; e.target.parentElement.innerHTML='<div style="font-size:40px">🛒</div>'; }} />
+                                onError={e => { e.target.style.display='none'; e.target.parentElement.innerHTML=`<i class="ti ${r.icon || 'ti-shopping-cart'}" style="font-size:26px;color:#4f46e5"></i>`; }} />
                             ) : (
-                              <div style={{ fontSize:40 }}>🛒</div>
+                              <i className={`ti ${r.icon || 'ti-shopping-cart'}`} style={{ fontSize:26, color:'#4f46e5' }} />
                             )}
                           </div>
-                          <div style={{ padding:14 }}>
-                            <p style={{ fontSize:11, color:'rgba(255,255,255,0.7)', marginBottom:6, lineHeight:1.4 }}>{typeof r==='string'?r:r.text}</p>
-                            {r.product && <p style={{ fontSize:13, fontWeight:700, color:'#fff', marginBottom:3 }}>{r.product}</p>}
-                            {r.store && <p style={{ fontSize:10, color:'rgba(255,255,255,0.5)', marginBottom:10 }}>📍 {r.store}</p>}
-                            {r.amazonUrl && (
-                              <a href={r.amazonUrl} target="_blank" rel="noopener noreferrer"
-                                style={{ display:'block', padding:'7px 12px', borderRadius:8, background:'rgba(255,255,255,0.15)', border:'0.5px solid rgba(255,255,255,0.25)', color:'#fff', fontSize:11, fontWeight:600, textAlign:'center' }}>
-                                View on Amazon →
-                              </a>
-                            )}
+                          <div style={{ flex:1, minWidth:0 }}>
+                            {r.product && <p style={{ fontSize:13, fontWeight:700, color:'#fff', marginBottom:2, lineHeight:1.3 }}>{r.product}</p>}
+                            <p style={{ fontSize:11, color:'rgba(255,255,255,0.7)', marginBottom:4, lineHeight:1.3 }}>{typeof r==='string'?r:r.text}</p>
+                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                              {r.store && <p style={{ fontSize:10, color:'rgba(255,255,255,0.5)', margin:0 }}>📍 {r.store}</p>}
+                              {r.amazonUrl && (
+                                <a href={r.amazonUrl} target="_blank" rel="noopener noreferrer"
+                                  style={{ flexShrink:0, padding:'4px 10px', borderRadius:8, background:'rgba(255,255,255,0.15)', border:'0.5px solid rgba(255,255,255,0.25)', color:'#fff', fontSize:10, fontWeight:600, whiteSpace:'nowrap' }}>
+                                  Amazon →
+                                </a>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
