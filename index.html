@@ -796,7 +796,7 @@ Return ONLY the JSON object, nothing else.`
           )}
 
           {/* Search & Upload tabs */}
-          {(tab === 'search' || tab === 'upload') && !result && (
+          {(tab === 'upload' || (tab === 'search' && !result)) && (
             <div style={{ maxWidth:540, margin:'0 auto', padding:'20px 16px', paddingBottom:100, animation:'fadeIn 0.3s ease' }}>
 
               {tab === 'search' && (
@@ -867,7 +867,7 @@ Return ONLY the JSON object, nothing else.`
           )}
 
           {/* Results */}
-          {result && !loading && tab !== 'history' && tab !== 'profile' && (
+          {result && !loading && tab === 'search' && (
             <div style={{ animation:'fadeIn 0.4s ease', paddingBottom:100 }}>
 
               <div style={{ background:'#4f46e5', padding:'0 16px 20px' }}>
